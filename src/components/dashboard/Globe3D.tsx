@@ -356,7 +356,7 @@ const Globe3D = () => {
 
         // Update shader time
         if (globeRef.current.material && 'uniforms' in globeRef.current.material) {
-          globeRef.current.material.uniforms.time.value += 0.01
+          (globeRef.current.material as any).uniforms.time.value += 0.01
         }
 
         rendererRef.current.render(sceneRef.current, cameraRef.current)

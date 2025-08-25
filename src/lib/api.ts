@@ -229,8 +229,8 @@ export const batchAPI = async <T = any>(
       timestamp: new Date().toISOString(),
       metadata: {
         total: requests.length,
-        successful: successfulResults.length,
-        failed: errors.length
+        page: 1,
+        limit: requests.length
       }
     }
   } catch (error) {
@@ -308,12 +308,12 @@ class RateLimitedQueue {
 export const rateLimitedQueue = new RateLimitedQueue()
 
 // Utility functions for common operations
-export const formatError = (error: unknown): string => {
+export const formatError = (error: unknown): typeof ERROR_MESSAGES.unknownError => {
   if (error instanceof APIError) {
-    return error.message
+    return error.message as typeof ERROR_MESSAGES.unknownError
   }
   if (error instanceof Error) {
-    return error.message
+    return error.message as typeof ERROR_MESSAGES.unknownError
   }
   return ERROR_MESSAGES.unknownError
 }

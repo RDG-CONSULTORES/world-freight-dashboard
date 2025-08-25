@@ -130,7 +130,7 @@ export const useWebSocket = (
           console.warn('Failed to parse WebSocket message:', event.data)
           // Handle non-JSON messages
           const message: WebSocketMessage = {
-            type: 'raw',
+            type: 'kpi_update',
             data: event.data,
             timestamp: new Date().toISOString()
           }
