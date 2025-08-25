@@ -36,6 +36,52 @@ interface Aircraft {
   speed: number
 }
 
+// Geographic labels for continents and major countries
+interface GeographicLabel {
+  name: string
+  lat: number
+  lng: number
+  type: 'continent' | 'country' | 'ocean'
+  size: 'large' | 'medium' | 'small'
+}
+
+const GEOGRAPHIC_LABELS: GeographicLabel[] = [
+  // Continents
+  { name: 'NORTH AMERICA', lat: 50, lng: -100, type: 'continent', size: 'large' },
+  { name: 'SOUTH AMERICA', lat: -15, lng: -60, type: 'continent', size: 'large' },
+  { name: 'EUROPE', lat: 55, lng: 20, type: 'continent', size: 'large' },
+  { name: 'AFRICA', lat: 0, lng: 20, type: 'continent', size: 'large' },
+  { name: 'ASIA', lat: 50, lng: 100, type: 'continent', size: 'large' },
+  { name: 'AUSTRALIA', lat: -27, lng: 133, type: 'continent', size: 'medium' },
+
+  // Major Countries
+  { name: 'USA', lat: 40, lng: -95, type: 'country', size: 'medium' },
+  { name: 'CANADA', lat: 60, lng: -110, type: 'country', size: 'medium' },
+  { name: 'MEXICO', lat: 24, lng: -102, type: 'country', size: 'medium' },
+  { name: 'BRAZIL', lat: -10, lng: -55, type: 'country', size: 'medium' },
+  { name: 'ARGENTINA', lat: -35, lng: -65, type: 'country', size: 'small' },
+  
+  { name: 'UNITED KINGDOM', lat: 54, lng: -2, type: 'country', size: 'small' },
+  { name: 'GERMANY', lat: 51, lng: 10, type: 'country', size: 'medium' },
+  { name: 'FRANCE', lat: 47, lng: 2, type: 'country', size: 'small' },
+  { name: 'SPAIN', lat: 40, lng: -4, type: 'country', size: 'small' },
+  { name: 'ITALY', lat: 42, lng: 12, type: 'country', size: 'small' },
+  { name: 'RUSSIA', lat: 60, lng: 100, type: 'country', size: 'medium' },
+  
+  { name: 'CHINA', lat: 35, lng: 105, type: 'country', size: 'medium' },
+  { name: 'JAPAN', lat: 36, lng: 138, type: 'country', size: 'small' },
+  { name: 'INDIA', lat: 20, lng: 77, type: 'country', size: 'medium' },
+  { name: 'SOUTH KOREA', lat: 36, lng: 128, type: 'country', size: 'small' },
+  
+  { name: 'EGYPT', lat: 26, lng: 30, type: 'country', size: 'small' },
+  { name: 'SOUTH AFRICA', lat: -29, lng: 24, type: 'country', size: 'small' },
+  
+  // Oceans
+  { name: 'PACIFIC OCEAN', lat: 0, lng: -160, type: 'ocean', size: 'large' },
+  { name: 'ATLANTIC OCEAN', lat: 20, lng: -40, type: 'ocean', size: 'large' },
+  { name: 'INDIAN OCEAN', lat: -20, lng: 80, type: 'ocean', size: 'medium' }
+]
+
 // Major global aviation hubs - Top 25 busiest cargo airports
 const MAJOR_AIRPORTS: Airport[] = [
   // North America - Major Hubs
@@ -138,12 +184,14 @@ const Globe3DEnhanced: React.FC = () => {
   const [selectedRoute, setSelectedRoute] = useState<TradeRoute | null>(null)
   const [showRoutes, setShowRoutes] = useState(true)
   const [showAirports, setShowAirports] = useState(true)
+  const [showGeographicLabels, setShowGeographicLabels] = useState(true)
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
   const [controls, setControls] = useState({
     autoRotate: true,
     showStats: false,
     showLabels: true
   })
+  const [geographicLabels, setGeographicLabels] = useState<JSX.Element[]>([])
 
   // Utility functions
   const latLngToVector3 = useCallback((lat: number, lng: number, radius: number = 5): THREE.Vector3 => {
@@ -163,27 +211,24 @@ const Globe3DEnhanced: React.FC = () => {
     return num.toString()
   }, [])
 
-  // Create Earth with realistic textures
+  // Create Earth with realistic world map
   const createEarth = useCallback(() => {
     // Earth geometry
     const geometry = new THREE.SphereGeometry(5, 64, 32)
-
-    // Load textures (we'll use procedural textures for now)
-    const textureLoader = new THREE.TextureLoader()
     
-    // Create a simple earth-like material with shader
+    // Create detailed earth material with realistic geography
     const earthMaterial = new THREE.ShaderMaterial({
       uniforms: {
-        time: { value: 0 },
-        dayTexture: { value: null },
-        nightTexture: { value: null }
+        time: { value: 0 }
       },
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vNormal;
+        varying vec3 vPosition;
         void main() {
           vUv = uv;
           vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
@@ -191,24 +236,127 @@ const Globe3DEnhanced: React.FC = () => {
         uniform float time;
         varying vec2 vUv;
         varying vec3 vNormal;
+        varying vec3 vPosition;
         
-        // Simple procedural earth colors
-        vec3 getEarthColor(vec2 uv) {
-          float landMask = sin(uv.x * 20.0) * cos(uv.y * 10.0);
-          landMask += sin(uv.x * 35.0 + time * 0.1) * 0.3;
-          landMask += cos(uv.y * 25.0) * 0.2;
+        // Convert UV to lat/lng
+        vec2 uvToLatLng(vec2 uv) {
+          float lat = (uv.y - 0.5) * 180.0; // -90 to 90
+          float lng = (uv.x - 0.5) * 360.0; // -180 to 180
+          return vec2(lat, lng);
+        }
+        
+        // Check if coordinate is land (simplified world map)
+        float getLandMask(vec2 latLng) {
+          float lat = latLng.x;
+          float lng = latLng.y;
+          float land = 0.0;
           
-          vec3 oceanColor = vec3(0.1, 0.3, 0.8);
-          vec3 landColor = vec3(0.2, 0.6, 0.2);
-          vec3 desertColor = vec3(0.8, 0.7, 0.3);
-          
-          // Mix colors based on coordinates and noise
-          vec3 color = mix(oceanColor, landColor, smoothstep(-0.2, 0.3, landMask));
-          
-          // Add desert regions
-          if (abs(vUv.y - 0.3) < 0.1 || abs(vUv.y - 0.7) < 0.1) {
-            color = mix(color, desertColor, 0.6);
+          // North America
+          if (lng > -160.0 && lng < -60.0 && lat > 25.0 && lat < 70.0) {
+            land += 0.8;
+            // Add detail for USA/Canada shape
+            if (lng > -125.0 && lng < -65.0 && lat > 30.0 && lat < 50.0) land += 0.2;
           }
+          
+          // South America
+          if (lng > -85.0 && lng < -35.0 && lat > -55.0 && lat < 15.0) {
+            land += 0.8;
+            // Brazil detail
+            if (lng > -70.0 && lng < -40.0 && lat > -30.0 && lat < 5.0) land += 0.2;
+          }
+          
+          // Europe
+          if (lng > -15.0 && lng < 45.0 && lat > 35.0 && lat < 70.0) {
+            land += 0.8;
+            // Scandinavia
+            if (lng > 5.0 && lng < 30.0 && lat > 55.0 && lat < 70.0) land += 0.3;
+          }
+          
+          // Africa
+          if (lng > -20.0 && lng < 55.0 && lat > -35.0 && lat < 37.0) {
+            land += 0.8;
+            // Sahara detail
+            if (lng > -10.0 && lng < 40.0 && lat > 10.0 && lat < 30.0) land += 0.1;
+          }
+          
+          // Asia
+          if (lng > 25.0 && lng < 180.0 && lat > 5.0 && lat < 80.0) {
+            land += 0.8;
+            // China detail
+            if (lng > 70.0 && lng < 140.0 && lat > 18.0 && lat < 50.0) land += 0.2;
+            // India detail
+            if (lng > 65.0 && lng < 100.0 && lat > 5.0 && lat < 35.0) land += 0.2;
+          }
+          
+          // Australia
+          if (lng > 110.0 && lng < 155.0 && lat > -45.0 && lat < -10.0) {
+            land += 0.7;
+          }
+          
+          // Add coastal noise for realistic edges
+          float noise = sin(lng * 0.5 + time * 0.1) * cos(lat * 0.3) * 0.1;
+          land += noise;
+          
+          return smoothstep(0.3, 0.7, land);
+        }
+        
+        // Get country borders (simplified)
+        float getBorders(vec2 latLng) {
+          float lat = latLng.x;
+          float lng = latLng.y;
+          float border = 0.0;
+          
+          // Major latitude lines (country borders often follow these)
+          border += abs(mod(lat + 0.5, 10.0) - 5.0) < 0.3 ? 0.3 : 0.0;
+          
+          // Major longitude lines
+          border += abs(mod(lng + 0.5, 15.0) - 7.5) < 0.3 ? 0.2 : 0.0;
+          
+          // Specific major borders
+          // US-Canada border (49th parallel)
+          if (abs(lat - 49.0) < 0.5 && lng > -140.0 && lng < -60.0) border += 0.8;
+          
+          // US-Mexico border
+          if (abs(lat - 32.0) < 0.8 && lng > -115.0 && lng < -95.0) border += 0.6;
+          
+          return border;
+        }
+        
+        vec3 getEarthColor(vec2 uv) {
+          vec2 latLng = uvToLatLng(uv);
+          float landMask = getLandMask(latLng);
+          float borders = getBorders(latLng);
+          
+          // Color definitions
+          vec3 oceanColor = vec3(0.15, 0.35, 0.65);
+          vec3 landColor = vec3(0.25, 0.45, 0.15);
+          vec3 desertColor = vec3(0.7, 0.6, 0.3);
+          vec3 mountainColor = vec3(0.4, 0.3, 0.2);
+          vec3 borderColor = vec3(1.0, 1.0, 1.0);
+          
+          // Base color (ocean vs land)
+          vec3 color = mix(oceanColor, landColor, landMask);
+          
+          // Add terrain variation
+          float lat = latLng.x;
+          float lng = latLng.y;
+          
+          // Deserts (around tropics)
+          if (landMask > 0.5) {
+            float desertFactor = 1.0 - abs(abs(lat) - 23.0) / 23.0; // Tropic bands
+            if (desertFactor > 0.7) {
+              color = mix(color, desertColor, desertFactor * 0.6);
+            }
+            
+            // Mountains (simplified mountain ranges)
+            float mountainNoise = sin(lng * 0.3) * cos(lat * 0.4);
+            if (mountainNoise > 0.4 && landMask > 0.6) {
+              color = mix(color, mountainColor, 0.4);
+            }
+          }
+          
+          // Add borders
+          color = mix(color, borderColor, borders * 0.7);
           
           return color;
         }
@@ -216,11 +364,29 @@ const Globe3DEnhanced: React.FC = () => {
         void main() {
           vec3 earthColor = getEarthColor(vUv);
           
-          // Add atmosphere glow
-          float atmosphere = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-          vec3 atmosphereColor = vec3(0.3, 0.6, 1.0) * atmosphere;
+          // Add day/night terminator
+          vec3 lightDirection = normalize(vec3(1.0, 0.3, 0.5));
+          float dayNight = dot(vNormal, lightDirection);
+          float lightIntensity = 0.4 + 0.6 * max(0.0, dayNight);
           
-          gl_FragColor = vec4(earthColor + atmosphereColor * 0.3, 1.0);
+          earthColor *= lightIntensity;
+          
+          // Add city lights on night side
+          if (dayNight < 0.1) {
+            vec2 latLng = uvToLatLng(vUv);
+            float landMask = getLandMask(latLng);
+            if (landMask > 0.5) {
+              float cityLights = sin(vUv.x * 80.0) * cos(vUv.y * 60.0);
+              cityLights = smoothstep(0.85, 1.0, cityLights);
+              earthColor += vec3(1.0, 0.8, 0.4) * cityLights * 0.4 * (1.0 - dayNight * 5.0);
+            }
+          }
+          
+          // Add subtle atmosphere glow
+          float atmosphere = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+          vec3 atmosphereColor = vec3(0.4, 0.7, 1.0) * atmosphere * 0.3;
+          
+          gl_FragColor = vec4(earthColor + atmosphereColor, 1.0);
         }
       `
     })
@@ -296,6 +462,82 @@ const Globe3DEnhanced: React.FC = () => {
 
     return new THREE.Mesh(geometry, material)
   }, [])
+
+  // Create geographic labels
+  const updateGeographicLabels = useCallback(() => {
+    if (!containerRef.current || !cameraRef.current) return
+
+    const labels: JSX.Element[] = []
+    const container = containerRef.current
+    const rect = container.getBoundingClientRect()
+
+    GEOGRAPHIC_LABELS.forEach((label, index) => {
+      const position = latLngToVector3(label.lat, label.lng, 5.2)
+      
+      // Project 3D position to screen coordinates
+      const screenPosition = position.clone().project(cameraRef.current!)
+      
+      // Convert to pixel coordinates
+      const x = (screenPosition.x * 0.5 + 0.5) * rect.width
+      const y = (screenPosition.y * -0.5 + 0.5) * rect.height
+      
+      // Check if label is visible (not on back of globe)
+      const isVisible = screenPosition.z < 1
+
+      if (isVisible && showGeographicLabels) {
+        let fontSize = '12px'
+        let fontWeight = '600'
+        let color = '#ffffff'
+        let opacity = 0.8
+
+        switch (label.type) {
+          case 'continent':
+            fontSize = label.size === 'large' ? '16px' : '14px'
+            fontWeight = '700'
+            color = '#66ccff'
+            opacity = 0.9
+            break
+          case 'country':
+            fontSize = label.size === 'medium' ? '11px' : '10px'
+            fontWeight = '500'
+            color = '#ffaa00'
+            opacity = 0.7
+            break
+          case 'ocean':
+            fontSize = label.size === 'large' ? '14px' : '12px'
+            fontWeight = '400'
+            color = '#00ffaa'
+            opacity = 0.6
+            break
+        }
+
+        labels.push(
+          <div
+            key={`geo-label-${index}`}
+            style={{
+              position: 'absolute',
+              left: `${x}px`,
+              top: `${y}px`,
+              transform: 'translate(-50%, -50%)',
+              fontSize,
+              fontWeight,
+              color,
+              opacity,
+              textShadow: '0 0 4px rgba(0,0,0,0.8)',
+              pointerEvents: 'none',
+              zIndex: 1000,
+              fontFamily: 'monospace',
+              letterSpacing: '0.5px'
+            }}
+          >
+            {label.name}
+          </div>
+        )
+      }
+    })
+
+    setGeographicLabels(labels)
+  }, [latLngToVector3, showGeographicLabels])
 
   // Create airport markers
   const createAirportMarkers = useCallback(() => {
@@ -474,9 +716,12 @@ const Globe3DEnhanced: React.FC = () => {
       }
     })
 
+    // Update geographic labels
+    updateGeographicLabels()
+
     rendererRef.current.render(sceneRef.current, cameraRef.current)
     frameRef.current = requestAnimationFrame(animate)
-  }, [controls.autoRotate, aircraft, latLngToVector3])
+  }, [controls.autoRotate, aircraft, latLngToVector3, updateGeographicLabels])
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -613,6 +858,10 @@ const Globe3DEnhanced: React.FC = () => {
     setShowAirports(prev => !prev)
   }
 
+  const toggleGeographicLabels = () => {
+    setShowGeographicLabels(prev => !prev)
+  }
+
   return (
     <div className="relative w-full h-96 bg-black rounded-lg overflow-hidden">
       {/* Loading overlay */}
@@ -630,6 +879,9 @@ const Globe3DEnhanced: React.FC = () => {
         ref={containerRef}
         className="w-full h-full cursor-grab active:cursor-grabbing"
       />
+
+      {/* Geographic Labels Overlay */}
+      {geographicLabels}
 
       {/* Controls Panel */}
       <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -676,6 +928,18 @@ const Globe3DEnhanced: React.FC = () => {
         >
           <MapPin className="w-4 h-4" />
         </button>
+        
+        <button
+          onClick={toggleGeographicLabels}
+          className={`p-2 rounded-lg backdrop-blur-sm transition-all ${
+            showGeographicLabels 
+              ? 'bg-cyan-500/20 text-cyan-400' 
+              : 'bg-gray-800/50 text-gray-400'
+          }`}
+          title={showGeographicLabels ? 'Hide Geographic Labels' : 'Show Geographic Labels'}
+        >
+          <Globe className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Stats Panel */}
@@ -715,6 +979,9 @@ const Globe3DEnhanced: React.FC = () => {
             <span className="font-semibold">Global Trade Routes</span>
           </div>
           <p>Interactive 3D visualization of major cargo routes and aviation hubs worldwide. Mouse to rotate, scroll to zoom.</p>
+          <div className="mt-2 pt-2 border-t border-white/20">
+            <span className="text-yellow-400">🔄 Enhanced version with real world maps available</span>
+          </div>
         </div>
       </div>
     </div>
