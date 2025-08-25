@@ -221,7 +221,7 @@ export const ERROR_MESSAGES = {
   rateLimitError: 'Too many requests. Please wait before trying again.',
   timeoutError: 'Request timed out. Please try again.',
   unknownError: 'An unexpected error occurred. Please try again.'
-} as const
+}
 
 // Success messages
 export const SUCCESS_MESSAGES = {

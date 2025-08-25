@@ -225,7 +225,7 @@ export default function Dashboard() {
       title: 'Load Factor',
       value: kpiData.loadFactor,
       unit: '%',
-      trend: { direction: (Math.random() > 0.5 ? 'up' : 'down') as const, percentage: Math.random() * 8 },
+      trend: { direction: Math.random() > 0.5 ? 'up' as const : 'down' as const, percentage: Math.random() * 8 },
       icon: Package,
       color: 'bg-green-500'
     },

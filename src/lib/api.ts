@@ -308,12 +308,12 @@ class RateLimitedQueue {
 export const rateLimitedQueue = new RateLimitedQueue()
 
 // Utility functions for common operations
-export const formatError = (error: unknown): typeof ERROR_MESSAGES.unknownError => {
+export const formatError = (error: unknown): string => {
   if (error instanceof APIError) {
-    return error.message as typeof ERROR_MESSAGES.unknownError
+    return error.message
   }
   if (error instanceof Error) {
-    return error.message as typeof ERROR_MESSAGES.unknownError
+    return error.message
   }
   return ERROR_MESSAGES.unknownError
 }
