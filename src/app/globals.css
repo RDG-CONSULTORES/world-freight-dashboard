@@ -1,0 +1,288 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 9%;
+    --foreground: 220 9% 95%;
+    --card: 220 13% 11%;
+    --card-foreground: 220 9% 95%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 220 9% 95%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 220 9% 95%;
+    --secondary: 220 13% 15%;
+    --secondary-foreground: 220 9% 95%;
+    --muted: 220 13% 15%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 220 13% 15%;
+    --accent-foreground: 220 9% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 220 9% 95%;
+    --border: 220 13% 15%;
+    --input: 220 13% 15%;
+    --ring: 210 100% 50%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent;
+}
+
+/* Cyber grid background */
+.cyber-grid {
+  background-image: 
+    linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 20px 20px; }
+}
+
+/* Particle effect */
+.particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: linear-gradient(45deg, #06b6d4, #3b82f6);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+.particle:nth-child(odd) {
+  animation-delay: -2s;
+}
+
+.particle:nth-child(3n) {
+  animation-delay: -4s;
+}
+
+/* Glowing border effect */
+.glow-border {
+  position: relative;
+  background: linear-gradient(145deg, rgba(6, 182, 212, 0.1), rgba(59, 130, 246, 0.1));
+  border: 1px solid transparent;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  background: linear-gradient(145deg, #06b6d4, #3b82f6, #8b5cf6);
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+}
+
+/* Animated gradient text */
+.gradient-text {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6, #06b6d4);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Pulsing dot indicator */
+.pulse-dot {
+  position: relative;
+}
+
+.pulse-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: inherit;
+  transform: translate(-50%, -50%);
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.33);
+    opacity: 1;
+  }
+  80%, 100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Data stream animation */
+.data-stream {
+  position: relative;
+  overflow: hidden;
+}
+
+.data-stream::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 98px,
+    rgba(6, 182, 212, 0.03) 100px
+  );
+  animation: data-flow 8s linear infinite;
+}
+
+/* Loading shimmer effect */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Hover glow effect */
+.hover-glow {
+  transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 
+    0 0 20px rgba(6, 182, 212, 0.3),
+    0 0 40px rgba(6, 182, 212, 0.2),
+    inset 0 0 20px rgba(6, 182, 212, 0.1);
+}
+
+/* Status indicators */
+.status-online {
+  @apply bg-green-500;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.status-warning {
+  @apply bg-yellow-500;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+}
+
+.status-error {
+  @apply bg-red-500;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.status-offline {
+  @apply bg-gray-500;
+  box-shadow: 0 0 10px rgba(107, 114, 128, 0.5);
+}
+
+/* Chart container styling */
+.chart-container {
+  background: radial-gradient(circle at 30% 40%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+              radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Utility classes */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.border-gradient {
+  border-image: linear-gradient(145deg, #06b6d4, #3b82f6) 1;
+}
+
+/* Responsive grid layouts */
+.grid-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .grid-dashboard {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-dashboard {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-full-width {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
