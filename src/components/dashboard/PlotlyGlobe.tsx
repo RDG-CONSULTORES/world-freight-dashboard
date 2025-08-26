@@ -81,7 +81,7 @@ export default function PlotlyGlobe() {
         { from: [25.2532, 55.3657], to: [50.0379, 8.5622], color: '#f97316' }
       ]
 
-      const traces = []
+      const traces: any[] = []
 
       // Add hub markers
       hubs.forEach(hub => {
