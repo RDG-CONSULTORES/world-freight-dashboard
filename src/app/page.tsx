@@ -19,8 +19,7 @@ import {
 
 import { KPIData, DashboardState } from '@/types/dashboard'
 import KPIGrid from '@/components/dashboard/KPIGrid'
-import WorldFreightGlobe from '@/components/dashboard/WorldFreightGlobe'
-import EmergencyGlobe from '@/components/dashboard/EmergencyGlobe'
+import SimpleGlobe from '@/components/dashboard/SimpleGlobe'
 import AduanappPanel from '@/components/dashboard/AduanappPanel'
 import TradeRoutes from '@/components/dashboard/TradeRoutes'
 
@@ -346,13 +345,9 @@ export default function Dashboard() {
           >
             <div className="glow-border p-6 rounded-xl glass">
               <h3 className="text-xl font-bold mb-4 flex items-center gap-3">
-                🌍 Global Trade Routes - NUEVA VERSION ✨
+                🌍 Global Trade Routes
               </h3>
-              <WorldFreightGlobe />
-              <div className="mt-4 p-4 bg-red-500/20 border-2 border-red-500 rounded-lg">
-                <h4 className="text-red-400 font-bold mb-2">🚨 Emergency Fallback (If above fails)</h4>
-                <EmergencyGlobe />
-              </div>
+              <SimpleGlobe />
             </div>
           </motion.section>
 
