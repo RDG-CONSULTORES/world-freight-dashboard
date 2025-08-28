@@ -64,7 +64,7 @@ export default function WorldFreightGlobe() {
       const getHub = (code: string) => worldFreightHubs.find(h => h.code === code)
 
       // Create traces array
-      const traces = []
+      const traces: any[] = []
 
       // Add hub markers - EXACTLY like AIFA
       worldFreightHubs.forEach(hub => {
@@ -218,9 +218,9 @@ export default function WorldFreightGlobe() {
       {/* Controls */}
       <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-700">
         <div className="text-sm text-gray-300">
-          🌍 <strong>{worldFreightHubs.length}</strong> Hubs • 
+          🌍 <strong>14</strong> Hubs • 
           🛫 <strong>8</strong> Rutas • 
-          📦 <strong>{worldFreightHubs.reduce((sum, h) => sum + h.cargo, 0).toLocaleString()}</strong>K tons/año
+          📦 <strong>30,000+</strong>K tons/año
         </div>
         <div className="text-xs text-cyan-400">
           🖱️ Drag to rotate • Scroll to zoom
