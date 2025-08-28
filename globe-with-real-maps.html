@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 Globe with Real World Maps - World Freight</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            background: radial-gradient(ellipse at center, #0a0e27 0%, #000000 100%);
+            color: #00ff88; min-height: 100vh; overflow: hidden;
+        }
+        
+        .container {
+            width: 100vw; height: 100vh; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        #globe-container {
+            width: 95vw; height: 95vh;
+            position: relative; border-radius: 20px; overflow: hidden;
+            background: radial-gradient(circle, rgba(0,100,200,0.1) 0%, rgba(0,0,0,0.8) 100%);
+            border: 2px solid #00ff88;
+            box-shadow: 0 0 50px #00ff88;
+        }
+        
+        /* Geographic Labels */
+        .geo-label {
+            position: absolute; z-index: 1001; 
+            font-family: 'Orbitron', monospace; font-weight: 700;
+            text-align: center; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 0 8px rgba(0,0,0,0.9);
+            letter-spacing: 1px; transition: all 0.3s ease;
+        }
+        
+        .continent-label {
+            font-size: 18px; color: #66ccff; 
+            text-shadow: 0 0 10px #66ccff, 0 0 20px rgba(102,204,255,0.5);
+            font-weight: 900;
+        }
+        
+        .country-label {
+            font-size: 12px; color: #ffaa00; 
+            text-shadow: 0 0 8px #ffaa00, 0 0 15px rgba(255,170,0,0.4);
+            font-weight: 600;
+        }
+        
+        .ocean-label {
+            font-size: 14px; color: #00ffaa; 
+            text-shadow: 0 0 8px #00ffaa, 0 0 15px rgba(0,255,170,0.3);
+            font-weight: 400; font-style: italic;
+        }
+        
+        /* Controls */
+        .main-hud {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,100,255,0.1) 100%);
+            border: 1px solid #00ff88; border-radius: 10px; padding: 20px;
+            backdrop-filter: blur(10px); min-width: 300px;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+        }
+        
+        .hud-title {
+            font-size: 16px; font-weight: 900; margin-bottom: 15px;
+            color: #00ff88; text-shadow: 0 0 10px #00ff88;
+        }
+        
+        .controls {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            display: flex; gap: 15px; flex-wrap: wrap;
+        }
+        
+        .nasa-btn {
+            background: linear-gradient(135deg, rgba(0,255,136,0.2) 0%, rgba(0,100,255,0.2) 100%);
+            border: 1px solid #00ff88; color: #00ff88; padding: 12px 20px;
+            border-radius: 25px; cursor: pointer; font-family: 'Orbitron', monospace;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            transition: all 0.3s ease; backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(0,255,136,0.2);
+        }
+        
+        .nasa-btn:hover {
+            background: linear-gradient(135deg, rgba(0,255,136,0.4) 0%, rgba(0,100,255,0.4) 100%);
+            box-shadow: 0 0 25px rgba(0,255,136,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .nasa-btn.active {
+            background: linear-gradient(135deg, rgba(0,255,136,0.6) 0%, rgba(0,100,255,0.6) 100%);
+            box-shadow: 0 0 30px rgba(0,255,136,0.7);
+        }
+        
+        .info-panel {
+            position: absolute; top: 20px; right: 20px; z-index: 1000;
+            background: rgba(0,0,0,0.8); border: 1px solid #00ff88;
+            border-radius: 10px; padding: 15px; max-width: 280px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .legend {
+            position: absolute; bottom: 20px; right: 20px; z-index: 1000;
+            background: rgba(0,0,0,0.8); border: 1px solid #00ff88;
+            border-radius: 10px; padding: 15px; max-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="globe-container">
+            
+            <!-- Main HUD -->
+            <div class="main-hud">
+                <div class="hud-title">🌍 WORLD FREIGHT MAPPING SYSTEM</div>
+                <div style="font-size: 10px; color: #66ccff; line-height: 1.4;">
+                    <div>📍 <span style="color: #00ff88;">REAL WORLD GEOGRAPHY</span></div>
+                    <div>🗺️ Countries, Continents & Oceans Visible</div>
+                    <div>✈️ Major Aviation Cargo Hubs</div>
+                    <div>🌐 Interactive 3D Earth Model</div>
+                </div>
+            </div>
+            
+            <!-- Info Panel -->
+            <div class="info-panel">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #00ff88;">🌍 GEOGRAPHIC CONTEXT</div>
+                <div style="font-size: 10px; line-height: 1.4; color: #ffffff;">
+                    <div style="margin-bottom: 8px;">
+                        <span style="color: #66ccff;">CONTINENTS:</span> Azul brillante<br>
+                        <span style="color: #ffaa00;">COUNTRIES:</span> Naranja<br>
+                        <span style="color: #00ffaa;">OCEANS:</span> Verde agua
+                    </div>
+                    <div style="margin-bottom: 8px; color: #ffaa00;">
+                        <strong>VISIBLE COUNTRIES:</strong><br>
+                        USA, Canada, Mexico, Brazil<br>
+                        UK, Germany, France, Spain<br>
+                        China, Japan, India, Russia
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="legend">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #00ff88;">🏢 CARGO HUBS</div>
+                <div style="font-size: 10px; line-height: 1.4;">
+                    <div style="margin-bottom: 5px;">
+                        <span style="color: #ff6b35;">●</span> Major Hub (4.6M+ tons)
+                    </div>
+                    <div style="margin-bottom: 5px;">
+                        <span style="color: #f7931e;">●</span> Regional Hub (1M+ tons)
+                    </div>
+                    <div style="margin-bottom: 5px;">
+                        <span style="color: #06b6d4;">●</span> International (500K+ tons)
+                    </div>
+                    <div style="margin-top: 8px; font-size: 9px; color: #888;">
+                        Datos: Volúmenes de carga 2024
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button class="nasa-btn active" id="auto-rotate">
+                    🔄 Auto Rotación: ON
+                </button>
+                <button class="nasa-btn" id="reset-view">
+                    📍 Reset Vista
+                </button>
+                <button class="nasa-btn active" id="show-routes">
+                    ✈️ Rutas: ON
+                </button>
+                <button class="nasa-btn active" id="show-airports">
+                    🏢 Hubs: ON
+                </button>
+                <button class="nasa-btn active" id="show-labels">
+                    🗺️ Etiquetas: ON
+                </button>
+                <button class="nasa-btn" id="pause-rotation">
+                    ⏸️ Pausar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // Global variables
+        let scene, camera, renderer, globe, clouds, atmosphere;
+        let autoRotate = true, showRoutes = true, showAirports = true, showLabels = true;
+        let aircraftList = [], routeGroup, airportGroup, labelElements = [];
+        
+        // Geographic labels data
+        const GEOGRAPHIC_LABELS = [
+            // Continents
+            { name: 'NORTH AMERICA', lat: 50, lng: -100, type: 'continent' },
+            { name: 'SOUTH AMERICA', lat: -15, lng: -60, type: 'continent' },
+            { name: 'EUROPE', lat: 55, lng: 20, type: 'continent' },
+            { name: 'AFRICA', lat: 0, lng: 20, type: 'continent' },
+            { name: 'ASIA', lat: 50, lng: 100, type: 'continent' },
+            { name: 'AUSTRALIA', lat: -27, lng: 133, type: 'continent' },
+
+            // Major Countries
+            { name: 'USA', lat: 40, lng: -95, type: 'country' },
+            { name: 'CANADA', lat: 60, lng: -110, type: 'country' },
+            { name: 'MEXICO', lat: 24, lng: -102, type: 'country' },
+            { name: 'BRAZIL', lat: -10, lng: -55, type: 'country' },
+            { name: 'UNITED KINGDOM', lat: 54, lng: -2, type: 'country' },
+            { name: 'GERMANY', lat: 51, lng: 10, type: 'country' },
+            { name: 'FRANCE', lat: 47, lng: 2, type: 'country' },
+            { name: 'SPAIN', lat: 40, lng: -4, type: 'country' },
+            { name: 'RUSSIA', lat: 60, lng: 100, type: 'country' },
+            { name: 'CHINA', lat: 35, lng: 105, type: 'country' },
+            { name: 'JAPAN', lat: 36, lng: 138, type: 'country' },
+            { name: 'INDIA', lat: 20, lng: 77, type: 'country' },
+
+            // Oceans
+            { name: 'PACIFIC OCEAN', lat: 0, lng: -160, type: 'ocean' },
+            { name: 'ATLANTIC OCEAN', lat: 20, lng: -40, type: 'ocean' },
+            { name: 'INDIAN OCEAN', lat: -20, lng: 80, type: 'ocean' }
+        ];
+        
+        // Major airports data
+        const AIRPORTS = [
+            { code: 'MEM', name: 'Memphis', city: 'Memphis, USA', lat: 35.0424, lng: -89.9767, type: 'major', cargo: 4613000 },
+            { code: 'HKG', name: 'Hong Kong', city: 'Hong Kong', lat: 22.3080, lng: 113.9185, type: 'major', cargo: 4520000 },
+            { code: 'PVG', name: 'Shanghai', city: 'Shanghai, China', lat: 31.1443, lng: 121.8083, type: 'major', cargo: 3630000 },
+            { code: 'ANC', name: 'Anchorage', city: 'Anchorage, USA', lat: 61.1744, lng: -149.9961, type: 'major', cargo: 3162000 },
+            { code: 'LAX', name: 'Los Angeles', city: 'Los Angeles, USA', lat: 34.0522, lng: -118.2437, type: 'major', cargo: 2268000 },
+            { code: 'FRA', name: 'Frankfurt', city: 'Frankfurt, Germany', lat: 50.0379, lng: 8.5622, type: 'regional', cargo: 2280000 },
+            { code: 'DXB', name: 'Dubai', city: 'Dubai, UAE', lat: 25.2532, lng: 55.3657, type: 'regional', cargo: 2650000 },
+            { code: 'ICN', name: 'Seoul', city: 'Seoul, South Korea', lat: 37.4602, lng: 126.4407, type: 'regional', cargo: 2840000 },
+            { code: 'LHR', name: 'London', city: 'London, UK', lat: 51.4700, lng: -0.4543, type: 'regional', cargo: 1770000 },
+            { code: 'SIN', name: 'Singapore', city: 'Singapore', lat: 1.3644, lng: 103.9915, type: 'international', cargo: 2030000 }
+        ];
+        
+        // Major trade routes
+        const ROUTES = [
+            { from: 'HKG', to: 'MEM', volume: 285000, color: '#00bcd4' },
+            { from: 'PVG', to: 'LAX', volume: 240000, color: '#4caf50' },
+            { from: 'FRA', to: 'MEM', volume: 180000, color: '#9c27b0' },
+            { from: 'LHR', to: 'MEM', volume: 165000, color: '#f44336' },
+            { from: 'DXB', to: 'FRA', volume: 125000, color: '#ff5722' },
+            { from: 'SIN', to: 'DXB', volume: 98000, color: '#795548' },
+            { from: 'ICN', to: 'PVG', volume: 87000, color: '#607d8b' },
+            { from: 'ANC', to: 'LAX', volume: 195000, color: '#ff9800' }
+        ];
+        
+        // Initialize Three.js
+        function init() {
+            const container = document.getElementById('globe-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            // Create Earth with detailed geography
+            createEarthWithRealMaps();
+            createAtmosphere();
+            createClouds();
+            
+            // Create airports and routes
+            createAirports();
+            createRoutes();
+            createGeographicLabels();
+            
+            // Mouse controls
+            setupControls();
+            
+            // Start animation
+            animate();
+        }
+        
+        function createEarthWithRealMaps() {
+            const geometry = new THREE.SphereGeometry(5, 64, 32);
+            
+            // Shader material with realistic world geography
+            const material = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalize(normalMatrix * normal);
+                        vPosition = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    
+                    // Convert UV to lat/lng
+                    vec2 uvToLatLng(vec2 uv) {
+                        float lat = (uv.y - 0.5) * 180.0;
+                        float lng = (uv.x - 0.5) * 360.0;
+                        return vec2(lat, lng);
+                    }
+                    
+                    // Realistic land/ocean mask based on real world geography
+                    float getLandMask(vec2 latLng) {
+                        float lat = latLng.x;
+                        float lng = latLng.y;
+                        float land = 0.0;
+                        
+                        // North America - More detailed shape
+                        if (lng > -170.0 && lng < -50.0 && lat > 15.0 && lat < 75.0) {
+                            land += 0.9;
+                            // USA mainland
+                            if (lng > -130.0 && lng < -65.0 && lat > 25.0 && lat < 50.0) land += 0.3;
+                            // Canada
+                            if (lng > -140.0 && lng < -60.0 && lat > 45.0 && lat < 75.0) land += 0.3;
+                            // Mexico
+                            if (lng > -120.0 && lng < -85.0 && lat > 15.0 && lat < 35.0) land += 0.2;
+                            // Remove Gulf of Mexico and Great Lakes
+                            if (lng > -100.0 && lng < -80.0 && lat > 25.0 && lat < 32.0) land -= 0.6; // Gulf
+                            if (lng > -95.0 && lng < -75.0 && lat > 42.0 && lat < 50.0) land -= 0.4; // Great Lakes
+                        }
+                        
+                        // South America - Detailed shape
+                        if (lng > -85.0 && lng < -30.0 && lat > -60.0 && lat < 15.0) {
+                            land += 0.9;
+                            // Brazil
+                            if (lng > -75.0 && lng < -35.0 && lat > -35.0 && lat < 5.0) land += 0.3;
+                            // Argentina
+                            if (lng > -75.0 && lng < -50.0 && lat > -55.0 && lat < -20.0) land += 0.2;
+                            // Chile (narrow strip)
+                            if (lng > -80.0 && lng < -65.0 && lat > -55.0 && lat < -15.0) land += 0.3;
+                        }
+                        
+                        // Europe - Detailed
+                        if (lng > -15.0 && lng < 50.0 && lat > 35.0 && lat < 75.0) {
+                            land += 0.9;
+                            // UK and Ireland
+                            if (lng > -12.0 && lng < 3.0 && lat > 50.0 && lat < 62.0) land += 0.4;
+                            // Scandinavia
+                            if (lng > 5.0 && lng < 35.0 && lat > 55.0 && lat < 75.0) land += 0.4;
+                            // Mediterranean peninsulas
+                            if (lng > -10.0 && lng < 25.0 && lat > 35.0 && lat < 45.0) land += 0.3;
+                        }
+                        
+                        // Africa - Detailed shape
+                        if (lng > -20.0 && lng < 55.0 && lat > -40.0 && lat < 40.0) {
+                            land += 0.9;
+                            // North Africa
+                            if (lng > -15.0 && lng < 40.0 && lat > 0.0 && lat < 37.0) land += 0.3;
+                            // Sub-Saharan Africa
+                            if (lng > -20.0 && lng < 45.0 && lat > -35.0 && lat < 15.0) land += 0.3;
+                            // Madagascar
+                            if (lng > 42.0 && lng < 52.0 && lat > -26.0 && lat < -12.0) land += 0.4;
+                        }
+                        
+                        // Asia - Very detailed
+                        if (lng > 25.0 && lng < 180.0 && lat > -15.0 && lat < 80.0) {
+                            land += 0.9;
+                            // Russia (Siberia)
+                            if (lng > 30.0 && lng < 180.0 && lat > 50.0 && lat < 80.0) land += 0.4;
+                            // China
+                            if (lng > 70.0 && lng < 140.0 && lat > 18.0 && lat < 55.0) land += 0.4;
+                            // India
+                            if (lng > 68.0 && lng < 98.0 && lat > 5.0 && lat < 37.0) land += 0.4;
+                            // Southeast Asia
+                            if (lng > 92.0 && lng < 142.0 && lat > -12.0 && lat < 25.0) land += 0.3;
+                            // Japan
+                            if (lng > 128.0 && lng < 148.0 && lat > 30.0 && lat < 46.0) land += 0.5;
+                            // Arabian Peninsula
+                            if (lng > 34.0 && lng < 60.0 && lat > 12.0 && lat < 32.0) land += 0.3;
+                        }
+                        
+                        // Australia and Oceania
+                        if (lng > 110.0 && lng < 180.0 && lat > -50.0 && lat < -10.0) {
+                            land += 0.8;
+                            // Australia mainland
+                            if (lng > 112.0 && lng < 155.0 && lat > -40.0 && lat < -10.0) land += 0.3;
+                        }
+                        
+                        // Add realistic coastline noise
+                        float coastNoise = sin(lng * 2.0 + time * 0.1) * cos(lat * 1.5) * 0.15;
+                        land += coastNoise;
+                        
+                        return smoothstep(0.4, 0.8, land);
+                    }
+                    
+                    // Country borders
+                    float getBorders(vec2 latLng) {
+                        float lat = latLng.x;
+                        float lng = latLng.y;
+                        float border = 0.0;
+                        
+                        // Major political boundaries
+                        // US-Canada border (49th parallel)
+                        if (abs(lat - 49.0) < 0.8 && lng > -140.0 && lng < -65.0) border += 0.7;
+                        
+                        // US-Mexico border
+                        if (abs(lat - 32.0) < 1.0 && lng > -117.0 && lng < -96.0) border += 0.6;
+                        
+                        // European borders (simplified grid)
+                        if (lng > -10.0 && lng < 40.0 && lat > 35.0 && lat < 70.0) {
+                            if (abs(mod(lng + 5.0, 15.0) - 7.5) < 0.5) border += 0.3;
+                            if (abs(mod(lat + 5.0, 10.0) - 5.0) < 0.5) border += 0.3;
+                        }
+                        
+                        // Asian borders
+                        if (lng > 25.0 && lng < 140.0 && lat > 10.0 && lat < 55.0) {
+                            if (abs(mod(lng, 20.0) - 10.0) < 0.5) border += 0.2;
+                            if (abs(mod(lat, 15.0) - 7.5) < 0.5) border += 0.2;
+                        }
+                        
+                        return border;
+                    }
+                    
+                    void main() {
+                        vec2 latLng = uvToLatLng(vUv);
+                        float landMask = getLandMask(latLng);
+                        float borders = getBorders(latLng);
+                        
+                        // Realistic color palette
+                        vec3 deepOcean = vec3(0.05, 0.15, 0.4);
+                        vec3 shallowOcean = vec3(0.1, 0.25, 0.5);
+                        vec3 grassland = vec3(0.2, 0.5, 0.1);
+                        vec3 forest = vec3(0.1, 0.3, 0.05);
+                        vec3 desert = vec3(0.7, 0.6, 0.3);
+                        vec3 mountain = vec3(0.4, 0.3, 0.2);
+                        vec3 snow = vec3(0.8, 0.9, 1.0);
+                        vec3 borderColor = vec3(1.0, 1.0, 1.0);
+                        
+                        // Base color
+                        vec3 color = mix(deepOcean, grassland, landMask);
+                        
+                        // Add terrain variation based on geography
+                        float lat = latLng.x;
+                        float lng = latLng.y;
+                        
+                        if (landMask > 0.5) {
+                            // Deserts (around tropics)
+                            float desertFactor = 1.0 - abs(abs(lat) - 23.5) / 20.0;
+                            if (desertFactor > 0.6) {
+                                // Sahara, Arabian, Gobi, etc.
+                                if ((lng > -15.0 && lng < 35.0 && lat > 15.0 && lat < 35.0) || // Sahara
+                                    (lng > 35.0 && lng < 65.0 && lat > 15.0 && lat < 35.0) || // Arabian
+                                    (lng > 90.0 && lng < 120.0 && lat > 35.0 && lat < 50.0)) { // Gobi
+                                    color = mix(color, desert, 0.8);
+                                }
+                            }
+                            
+                            // Forests (temperate and tropical regions)
+                            if ((lat > 45.0 && lat < 65.0) || (abs(lat) < 10.0)) {
+                                float forestNoise = sin(lng * 0.2) * cos(lat * 0.3);
+                                if (forestNoise > 0.2) {
+                                    color = mix(color, forest, 0.6);
+                                }
+                            }
+                            
+                            // Mountains (simplified mountain ranges)
+                            float mountainNoise = sin(lng * 0.15 + lat * 0.1) * 0.5 + 0.5;
+                            if (mountainNoise > 0.7) {
+                                color = mix(color, mountain, 0.7);
+                                // Snow caps on high mountains
+                                if (abs(lat) > 30.0 || lat > 60.0) {
+                                    color = mix(color, snow, 0.4);
+                                }
+                            }
+                        }
+                        
+                        // Add country borders
+                        color = mix(color, borderColor, borders * 0.8);
+                        
+                        // Day/night lighting
+                        vec3 lightDirection = normalize(vec3(1.0, 0.2, 0.8));
+                        float dayNight = dot(vNormal, lightDirection);
+                        float lightIntensity = 0.3 + 0.7 * max(0.0, dayNight);
+                        
+                        color *= lightIntensity;
+                        
+                        // City lights on night side
+                        if (dayNight < 0.2 && landMask > 0.5) {
+                            float cityLights = sin(vUv.x * 100.0) * cos(vUv.y * 80.0);
+                            cityLights = smoothstep(0.88, 1.0, cityLights);
+                            color += vec3(1.0, 0.8, 0.4) * cityLights * 0.5 * (1.0 - dayNight * 3.0);
+                        }
+                        
+                        // Subtle atmosphere effect
+                        float atmosphere = pow(0.8 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.5);
+                        color += vec3(0.3, 0.6, 1.0) * atmosphere * 0.2;
+                        
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `
+            });
+            
+            globe = new THREE.Mesh(geometry, material);
+            scene.add(globe);
+        }
+        
+        function createAtmosphere() {
+            const geometry = new THREE.SphereGeometry(5.3, 64, 32);
+            const material = new THREE.ShaderMaterial({
+                uniforms: { c: { value: 0.6 }, p: { value: 6.0 } },
+                vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float c;
+                    uniform float p;
+                    varying vec3 vNormal;
+                    void main() {
+                        float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p);
+                        gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+                    }
+                `,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+            
+            atmosphere = new THREE.Mesh(geometry, material);
+            scene.add(atmosphere);
+        }
+        
+        function createClouds() {
+            const geometry = new THREE.SphereGeometry(5.1, 64, 32);
+            const material = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    varying vec2 vUv;
+                    
+                    float noise(vec2 p) {
+                        return sin(p.x * 12.0 + time * 0.3) * cos(p.y * 8.0 + time * 0.2) * 0.5 + 0.5;
+                    }
+                    
+                    void main() {
+                        float clouds = noise(vUv * 4.0) * noise(vUv * 2.0);
+                        clouds = smoothstep(0.4, 0.8, clouds);
+                        gl_FragColor = vec4(1.0, 1.0, 1.0, clouds * 0.4);
+                    }
+                `,
+                transparent: true
+            });
+            
+            clouds = new THREE.Mesh(geometry, material);
+            scene.add(clouds);
+        }
+        
+        function latLngToVector3(lat, lng, radius = 5.05) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lng + 180) * (Math.PI / 180);
+            
+            return new THREE.Vector3(
+                -(radius * Math.sin(phi) * Math.cos(theta)),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+        
+        function createGeographicLabels() {
+            const container = document.getElementById('globe-container');
+            labelElements = [];
+            
+            GEOGRAPHIC_LABELS.forEach((label, index) => {
+                const labelElement = document.createElement('div');
+                labelElement.className = `geo-label ${label.type}-label`;
+                labelElement.textContent = label.name;
+                labelElement.id = `geo-label-${index}`;
+                
+                container.appendChild(labelElement);
+                labelElements.push({ element: labelElement, data: label });
+            });
+        }
+        
+        function updateGeographicLabels() {
+            if (!showLabels) {
+                labelElements.forEach(({ element }) => {
+                    element.style.display = 'none';
+                });
+                return;
+            }
+            
+            const container = document.getElementById('globe-container');
+            const rect = container.getBoundingClientRect();
+            
+            labelElements.forEach(({ element, data }) => {
+                const position = latLngToVector3(data.lat, data.lng, 5.2);
+                
+                // Project to screen space
+                const vector = position.clone().project(camera);
+                
+                // Convert to pixel coordinates
+                const x = (vector.x * 0.5 + 0.5) * rect.width;
+                const y = (vector.y * -0.5 + 0.5) * rect.height;
+                
+                // Check if visible (not on back side)
+                const isVisible = vector.z < 1;
+                
+                if (isVisible) {
+                    element.style.display = 'block';
+                    element.style.left = `${x}px`;
+                    element.style.top = `${y}px`;
+                    
+                    // Fade based on distance from center
+                    const distanceFromCenter = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
+                    const opacity = Math.max(0.3, 1.0 - distanceFromCenter * 0.8);
+                    element.style.opacity = opacity;
+                } else {
+                    element.style.display = 'none';
+                }
+            });
+        }
+        
+        function createAirports() {
+            airportGroup = new THREE.Group();
+            
+            AIRPORTS.forEach(airport => {
+                const position = latLngToVector3(airport.lat, airport.lng);
+                
+                let size = 0.08;
+                let color = '#06b6d4';
+                
+                if (airport.type === 'major') {
+                    size = 0.15;
+                    color = '#ff6b35';
+                } else if (airport.type === 'regional') {
+                    size = 0.12;
+                    color = '#f7931e';
+                }
+                
+                const geometry = new THREE.SphereGeometry(size, 16, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color),
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const marker = new THREE.Mesh(geometry, material);
+                marker.position.copy(position);
+                
+                // Add pulsing ring for major hubs
+                if (airport.type === 'major') {
+                    const ringGeometry = new THREE.RingGeometry(size * 1.5, size * 2.5, 16);
+                    const ringMaterial = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color(color),
+                        transparent: true,
+                        opacity: 0.4,
+                        side: THREE.DoubleSide
+                    });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    ring.position.copy(position);
+                    ring.lookAt(new THREE.Vector3(0, 0, 0));
+                    airportGroup.add(ring);
+                }
+                
+                airportGroup.add(marker);
+            });
+            
+            if (showAirports) scene.add(airportGroup);
+        }
+        
+        function createRoutes() {
+            routeGroup = new THREE.Group();
+            aircraftList = [];
+            
+            ROUTES.forEach((route, index) => {
+                const fromAirport = AIRPORTS.find(a => a.code === route.from);
+                const toAirport = AIRPORTS.find(a => a.code === route.to);
+                
+                if (!fromAirport || !toAirport) return;
+                
+                const fromPos = latLngToVector3(fromAirport.lat, fromAirport.lng);
+                const toPos = latLngToVector3(toAirport.lat, toAirport.lng);
+                
+                // Create curved route
+                const midPoint = fromPos.clone().add(toPos).normalize().multiplyScalar(7);
+                const curve = new THREE.QuadraticBezierCurve3(fromPos, midPoint, toPos);
+                
+                // Route line
+                const points = curve.getPoints(100);
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({
+                    color: new THREE.Color(route.color),
+                    transparent: true,
+                    opacity: 0.7,
+                    linewidth: 3
+                });
+                
+                const line = new THREE.Line(geometry, material);
+                routeGroup.add(line);
+                
+                // Add aircraft
+                for (let i = 0; i < 3; i++) {
+                    const aircraftGeometry = new THREE.ConeGeometry(0.04, 0.15, 6);
+                    const aircraftMaterial = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color(route.color),
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    
+                    const aircraft = new THREE.Mesh(aircraftGeometry, aircraftMaterial);
+                    
+                    aircraftList.push({
+                        mesh: aircraft,
+                        curve: curve,
+                        progress: i * 0.33,
+                        speed: 0.003 + Math.random() * 0.002,
+                        route: route
+                    });
+                    
+                    routeGroup.add(aircraft);
+                }
+            });
+            
+            if (showRoutes) scene.add(routeGroup);
+        }
+        
+        function setupControls() {
+            const container = document.getElementById('globe-container');
+            let mouseX = 0, mouseY = 0;
+            let targetRotationX = 0, targetRotationY = 0;
+            
+            container.addEventListener('mousemove', (event) => {
+                const rect = container.getBoundingClientRect();
+                mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                if (!autoRotate) {
+                    targetRotationX = mouseY * 0.3;
+                    targetRotationY = mouseX * 0.5;
+                }
+            });
+            
+            container.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                camera.position.z += event.deltaY * 0.01;
+                camera.position.z = Math.max(8, Math.min(25, camera.position.z));
+            });
+            
+            // Button controls
+            document.getElementById('auto-rotate').addEventListener('click', () => {
+                autoRotate = !autoRotate;
+                const btn = document.getElementById('auto-rotate');
+                btn.textContent = autoRotate ? '🔄 Auto Rotación: ON' : '🔄 Auto Rotación: OFF';
+                btn.classList.toggle('active', autoRotate);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                camera.position.set(0, 0, 15);
+                if (globe) {
+                    globe.rotation.set(0, 0, 0);
+                }
+            });
+            
+            document.getElementById('show-routes').addEventListener('click', () => {
+                showRoutes = !showRoutes;
+                const btn = document.getElementById('show-routes');
+                btn.textContent = showRoutes ? '✈️ Rutas: ON' : '✈️ Rutas: OFF';
+                btn.classList.toggle('active', showRoutes);
+                
+                if (showRoutes) {
+                    scene.add(routeGroup);
+                } else {
+                    scene.remove(routeGroup);
+                }
+            });
+            
+            document.getElementById('show-airports').addEventListener('click', () => {
+                showAirports = !showAirports;
+                const btn = document.getElementById('show-airports');
+                btn.textContent = showAirports ? '🏢 Hubs: ON' : '🏢 Hubs: OFF';
+                btn.classList.toggle('active', showAirports);
+                
+                if (showAirports) {
+                    scene.add(airportGroup);
+                } else {
+                    scene.remove(airportGroup);
+                }
+            });
+            
+            document.getElementById('show-labels').addEventListener('click', () => {
+                showLabels = !showLabels;
+                const btn = document.getElementById('show-labels');
+                btn.textContent = showLabels ? '🗺️ Etiquetas: ON' : '🗺️ Etiquetas: OFF';
+                btn.classList.toggle('active', showLabels);
+            });
+            
+            document.getElementById('pause-rotation').addEventListener('click', () => {
+                autoRotate = false;
+                const btn = document.getElementById('pause-rotation');
+                const autoBtn = document.getElementById('auto-rotate');
+                autoBtn.textContent = '🔄 Auto Rotación: OFF';
+                autoBtn.classList.remove('active');
+                btn.textContent = '⏸️ Pausado';
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Auto rotation
+            if (autoRotate && globe) {
+                globe.rotation.y += 0.002;
+            }
+            
+            // Clouds rotation
+            if (clouds) {
+                clouds.rotation.y += 0.001;
+            }
+            
+            // Update shaders
+            if (globe && globe.material.uniforms) {
+                globe.material.uniforms.time.value += 0.01;
+            }
+            
+            if (clouds && clouds.material.uniforms) {
+                clouds.material.uniforms.time.value += 0.01;
+            }
+            
+            // Animate aircraft
+            aircraftList.forEach(aircraft => {
+                aircraft.progress += aircraft.speed;
+                if (aircraft.progress > 1) aircraft.progress = 0;
+                
+                const position = aircraft.curve.getPoint(aircraft.progress);
+                const nextPosition = aircraft.curve.getPoint(Math.min(aircraft.progress + 0.01, 1));
+                
+                aircraft.mesh.position.copy(position);
+                aircraft.mesh.lookAt(nextPosition);
+            });
+            
+            // Update geographic labels
+            updateGeographicLabels();
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('globe-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

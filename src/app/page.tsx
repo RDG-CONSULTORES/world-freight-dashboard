@@ -19,7 +19,7 @@ import {
 
 import { KPIData, DashboardState } from '@/types/dashboard'
 import KPIGrid from '@/components/dashboard/KPIGrid'
-import GlobeToggle from '@/components/dashboard/GlobeToggle'
+import WorldFreightGlobe from '@/components/dashboard/WorldFreightGlobe'
 import AduanappPanel from '@/components/dashboard/AduanappPanel'
 import TradeRoutes from '@/components/dashboard/TradeRoutes'
 
@@ -347,7 +347,7 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold mb-4 flex items-center gap-3">
                 🌍 Global Trade Routes
               </h3>
-              <GlobeToggle />
+              <WorldFreightGlobe />
             </div>
           </motion.section>
 

@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 World Freight Dashboard - Globe con Mapas Reales</title>
+    
+    <!-- Plotly.js CDN - LA CLAVE PARA MAPAS REALES -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* Variables CSS */
+        :root {
+            --primary-cyan: #00d4ff;
+            --primary-gold: #f59e0b;
+            --primary-dark: #0a0e27;
+            --secondary-dark: #1a1f37;
+            --success-green: #00ff88;
+            --danger-red: #ff4757;
+            --warning-orange: #ff6b35;
+            --text-primary: #ffffff;
+            --text-secondary: #8b92a9;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(0, 212, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f37 50%, #0a0e27 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            height: 100vh;
+            gap: 1rem;
+            padding: 1rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .control-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            height: fit-content;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-section {
+            margin-bottom: 2rem;
+        }
+
+        .control-title {
+            color: var(--primary-cyan);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-align: left;
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: var(--primary-cyan);
+            color: var(--primary-cyan);
+            transform: translateX(2px);
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 212, 255, 0.25);
+            border-color: var(--primary-cyan);
+            color: var(--primary-cyan);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-value {
+            color: var(--primary-cyan);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .map-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .map-header {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .map-title {
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: linear-gradient(45deg, #ffffff, #00d4ff, #ffffff);
+            background-size: 300% 300%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: var(--primary-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes hubPulse {
+            0%, 100% { 
+                box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(255, 68, 68, 0.8);
+                transform: scale(1.1);
+            }
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Estilos adicionales para información mejorada */
+        .hub-legend {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .route-legend {
+            margin-top: 0.5rem;
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 2px;
+            border-radius: 1px;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 14, 39, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 212, 255, 0.3);
+            border-top: 3px solid var(--primary-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .control-panel {
+                order: 2;
+                margin-top: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        
+        <!-- Panel de Control -->
+        <div class="control-panel">
+            
+            <!-- Estado del Sistema -->
+            <div class="control-section">
+                <h3 class="control-title">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">local_shipping</span>
+                    World Freight Status
+                </h3>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Sistema Global Operacional</span>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-hubs">20</div>
+                        <div class="metric-label">Cargo Hubs</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-cargo">45.2M</div>
+                        <div class="metric-label">Tons/Año</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros de Hub -->
+            <div class="control-section">
+                <h3 class="control-title">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">tune</span>
+                    Filtros de Red
+                </h3>
+                
+                <div class="filter-group">
+                    <button class="filter-btn active" onclick="filterByType('all')" id="filter-all">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">public</span>
+                        Todos los Hubs (20)
+                    </button>
+                    <button class="filter-btn" onclick="filterByType('major')" id="filter-major">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">star</span>
+                        Major Hubs (8)
+                    </button>
+                    <button class="filter-btn" onclick="filterByType('regional')" id="filter-regional">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">place</span>
+                        Regional Hubs (12)
+                    </button>
+                </div>
+
+                <div class="filter-group" style="margin-top: 1.5rem;">
+                    <button class="filter-btn" onclick="filterByRegion('americas')" id="filter-americas">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">map</span>
+                        Americas
+                    </button>
+                    <button class="filter-btn" onclick="filterByRegion('europe')" id="filter-europe">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">map</span>
+                        Europe
+                    </button>
+                    <button class="filter-btn" onclick="filterByRegion('asia')" id="filter-asia">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: margin-right: 6px;">map</span>
+                        Asia-Pacific
+                    </button>
+                </div>
+            </div>
+
+            <!-- Controles 3D -->
+            <div class="control-section">
+                <h3 class="control-title">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">3d_rotation</span>
+                    Controles Globo
+                </h3>
+                
+                <div class="filter-group">
+                    <button class="filter-btn" onclick="rotateGlobe()" id="rotate-btn">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">rotate_right</span>
+                        Auto-Rotación
+                    </button>
+                    <button class="filter-btn" onclick="resetView()" id="reset-btn">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">my_location</span>
+                        Vista Global
+                    </button>
+                    <button class="filter-btn" onclick="focusAmericas()" id="americas-btn">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">place</span>
+                        Enfocar Americas
+                    </button>
+                    <button class="filter-btn" onclick="focusEurope()" id="europe-btn">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">place</span>
+                        Enfocar Europa
+                    </button>
+                    <button class="filter-btn" onclick="focusAsia()" id="asia-btn">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">place</span>
+                        Enfocar Asia
+                    </button>
+                </div>
+            </div>
+
+            <!-- Métricas Live -->
+            <div class="control-section">
+                <h3 class="control-title">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">analytics</span>
+                    Métricas Globales
+                </h3>
+                
+                <div class="metric-card" style="margin-bottom: 1rem;">
+                    <div class="metric-value" id="total-routes">8</div>
+                    <div class="metric-label">Rutas Principales</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="avg-distance">8.2K</div>
+                        <div class="metric-label">Dist. Promedio (km)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="efficiency">94%</div>
+                        <div class="metric-label">Eficiencia Red</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leyenda Visual -->
+            <div class="control-section">
+                <h3 class="control-title">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">legend_toggle</span>
+                    Leyenda Visual
+                </h3>
+                
+                <div class="hub-legend">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: var(--primary-cyan);">HUBS DE CARGA:</div>
+                    
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #ff4444; transform: rotate(45deg);"></div>
+                        <span><strong>Major Hubs</strong> - Estrella roja (4M+ tons)</span>
+                    </div>
+                    
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #00ccff; border-radius: 2px;"></div>
+                        <span><strong>Regional Hubs</strong> - Diamante azul (1-4M tons)</span>
+                    </div>
+                    
+                    <div class="route-legend">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: var(--primary-cyan);">RUTAS:</div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #00bcd4;"></div>
+                            <span>Línea sólida - Rutas principales</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #4caf50; background-image: repeating-linear-gradient(90deg, transparent, transparent 2px, white 2px, white 4px);"></div>
+                            <span>Línea punteada - Rutas regionales</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de Contexto -->
+            <div class="control-section">
+                <h3 class="control-title">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">info</span>
+                    Contexto Geográfico
+                </h3>
+                
+                <div style="font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);">
+                    <div style="margin-bottom: 8px;">
+                        🌍 <strong style="color: var(--primary-cyan);">MAPAS REALES:</strong><br>
+                        Continentes y países visibles con fronteras precisas
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        🏢 <strong style="color: #ff4444);">TOP HUBS:</strong><br>
+                        Memphis (4.6M), Hong Kong (4.5M), Shanghai (3.6M)
+                    </div>
+                    <div>
+                        ✈️ <strong style="color: var(--success-green);">COBERTURA:</strong><br>
+                        Trans-Pacífico, Trans-Atlántico, Intra-Asia, Middle East
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container del Globo -->
+        <div class="map-container">
+            <div class="map-header">
+                <div class="map-title">
+                    <span class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 8px;">public</span>
+                    World Freight - Red Global de Carga
+                </div>
+                <div class="map-controls">
+                    <button class="control-btn" onclick="toggleAnimation()">
+                        <span class="material-icons" style="font-size: 14px;">play_arrow</span>
+                        Animar
+                    </button>
+                    <button class="control-btn" onclick="takeScreenshot()">
+                        <span class="material-icons" style="font-size: 14px;">photo_camera</span>
+                        Capturar
+                    </button>
+                    <button class="control-btn" onclick="toggleFullscreen()">
+                        <span class="material-icons" style="font-size: 14px;">fullscreen</span>
+                        Pantalla Completa
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Loading -->
+            <div class="loading-overlay" id="loading">
+                <div style="text-align: center;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--primary-cyan);">Cargando Globe con Mapas Reales...</p>
+                </div>
+            </div>
+            
+            <!-- Mapa 3D -->
+            <div id="world-globe" style="width: 100%; height: calc(100% - 70px);"></div>
+        </div>
+    </div>
+
+    <script>
+        // DATOS REALES DE WORLD FREIGHT
+        const WORLD_FREIGHT_DATA = {
+            // Major Cargo Hubs Globales
+            hubs: [
+                // North America - Major Hubs
+                {name: "Memphis (MEM)", lat: 35.0424, lng: -89.9767, cargo: 4613000, type: "major", region: "americas", company: "FedEx"},
+                {name: "Anchorage (ANC)", lat: 61.1744, lng: -149.9961, cargo: 3162000, type: "major", region: "americas", company: "UPS/FedEx"},
+                {name: "Los Angeles (LAX)", lat: 34.0522, lng: -118.2437, cargo: 2268000, type: "major", region: "americas", company: "Multiple"},
+                {name: "Chicago (ORD)", lat: 41.9742, lng: -87.9073, cargo: 1435000, type: "regional", region: "americas", company: "United/AA"},
+                {name: "Miami (MIA)", lat: 25.7959, lng: -80.2870, cargo: 2340000, type: "major", region: "americas", company: "American"},
+                
+                // Europe - Major Hubs
+                {name: "Frankfurt (FRA)", lat: 50.0379, lng: 8.5622, cargo: 2280000, type: "major", region: "europe", company: "Lufthansa Cargo"},
+                {name: "Paris (CDG)", lat: 49.0097, lng: 2.5479, cargo: 2180000, type: "major", region: "europe", company: "Air France"},
+                {name: "London (LHR)", lat: 51.4700, lng: -0.4543, cargo: 1770000, type: "regional", region: "europe", company: "British Airways"},
+                {name: "Amsterdam (AMS)", lat: 52.3105, lng: 4.7683, cargo: 1740000, type: "regional", region: "europe", company: "KLM Cargo"},
+                {name: "Liège (LGG)", lat: 50.6374, lng: 5.4432, cargo: 1040000, type: "regional", region: "europe", company: "TNT/FedEx"},
+                
+                // Asia-Pacific - Major Hubs
+                {name: "Hong Kong (HKG)", lat: 22.3080, lng: 113.9185, cargo: 4520000, type: "major", region: "asia", company: "Cathay Pacific"},
+                {name: "Shanghai (PVG)", lat: 31.1443, lng: 121.8083, cargo: 3630000, type: "major", region: "asia", company: "China Cargo"},
+                {name: "Seoul (ICN)", lat: 37.4602, lng: 126.4407, cargo: 2840000, type: "major", region: "asia", company: "Korean Air"},
+                {name: "Tokyo (NRT)", lat: 35.7720, lng: 140.3929, cargo: 2180000, type: "regional", region: "asia", company: "JAL/ANA"},
+                {name: "Singapore (SIN)", lat: 1.3644, lng: 103.9915, cargo: 2030000, type: "regional", region: "asia", company: "Singapore Airlines"},
+                {name: "Taipei (TPE)", lat: 25.0797, lng: 121.2342, cargo: 2230000, type: "regional", region: "asia", company: "China Airlines"},
+                
+                // Middle East & Others
+                {name: "Dubai (DXB)", lat: 25.2532, lng: 55.3657, cargo: 2650000, type: "major", region: "asia", company: "Emirates"},
+                {name: "Doha (DOH)", lat: 25.2731, lng: 51.6080, cargo: 1450000, type: "regional", region: "asia", company: "Qatar Airways"},
+                {name: "São Paulo (GRU)", lat: -23.4356, lng: -46.4731, cargo: 580000, type: "regional", region: "americas", company: "LATAM"},
+                {name: "Sydney (SYD)", lat: -33.9399, lng: 151.1753, cargo: 580000, type: "regional", region: "asia", company: "Qantas"}
+            ],
+            
+            // Rutas principales de carga
+            routes: [
+                // Trans-Pacific Powerhouses
+                {from: "HKG", to: "MEM", volume: 285000, color: '#00bcd4', type: "major"},
+                {from: "PVG", to: "LAX", volume: 240000, color: '#4caf50', type: "major"},
+                {from: "NRT", to: "ANC", volume: 195000, color: '#ff9800', type: "major"},
+                
+                // Trans-Atlantic Corridors
+                {from: "FRA", to: "ORD", volume: 180000, color: '#9c27b0', type: "major"},
+                {from: "LHR", to: "MEM", volume: 165000, color: '#f44336', type: "major"},
+                
+                // Europe-Asia Silk Road
+                {from: "AMS", to: "HKG", volume: 145000, color: '#3f51b5', type: "regional"},
+                
+                // Middle East Gateway
+                {from: "DXB", to: "FRA", volume: 125000, color: '#ff5722', type: "regional"},
+                {from: "SIN", to: "DXB", volume: 98000, color: '#795548', type: "regional"}
+            ]
+        };
+
+        // Variables de Estado
+        let currentFilter = 'all';
+        let currentRegion = 'all';
+        let isRotating = false;
+        let rotationInterval;
+
+        // Función para obtener hub por código
+        function getHubByCode(code) {
+            return WORLD_FREIGHT_DATA.hubs.find(hub => hub.name.includes(`(${code})`));
+        }
+
+        // Inicializar Globe
+        function initializeGlobe() {
+            console.log('▶ Inicializando World Freight Globe...');
+            
+            // Ocultar loading después de 1.5 segundos
+            setTimeout(() => {
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 500);
+            }, 1500);
+
+            updateGlobe();
+        }
+
+        // Función Principal del Globe
+        function updateGlobe(filterType = 'all', regionFilter = 'all') {
+            console.log('▶ Actualizando globe:', filterType, regionFilter);
+            
+            let hubs = WORLD_FREIGHT_DATA.hubs;
+            let routes = WORLD_FREIGHT_DATA.routes;
+
+            // Aplicar filtros
+            if (filterType !== 'all') {
+                hubs = hubs.filter(h => h.type === filterType);
+            }
+            
+            if (regionFilter !== 'all') {
+                hubs = hubs.filter(h => h.region === regionFilter);
+            }
+
+            const traces = [];
+
+            // 1. Cargo Hubs - Markers refinados y destacados
+            hubs.forEach(hub => {
+                let markerSize, markerColor, markerSymbol, glowSize, borderWidth;
+                
+                if (hub.type === 'major') {
+                    markerSize = Math.max(30, Math.min(hub.cargo / 50000, 70));  // Aún más grandes
+                    markerColor = '#ff4444';     // Rojo brillante para major hubs
+                    markerSymbol = 'star';
+                    glowSize = markerSize + 12;  // Halo de brillo
+                    borderWidth = 3;
+                } else {
+                    markerSize = Math.max(20, Math.min(hub.cargo / 70000, 45));  // Más destacados
+                    markerColor = '#00ccff';     // Azul cian para regional hubs
+                    markerSymbol = 'diamond';
+                    glowSize = markerSize + 8;
+                    borderWidth = 2;
+                }
+
+                // Halo de brillo para destacar
+                traces.push({
+                    type: 'scattergeo',
+                    lat: [hub.lat],
+                    lon: [hub.lng],
+                    mode: 'markers',
+                    marker: {
+                        size: glowSize,
+                        color: markerColor,
+                        opacity: 0.3,           // Transparente para efecto halo
+                        symbol: 'circle'
+                    },
+                    showlegend: false,
+                    hoverinfo: 'skip'
+                });
+
+                // Marker principal del hub
+                traces.push({
+                    type: 'scattergeo',
+                    lat: [hub.lat],
+                    lon: [hub.lng],
+                    text: [hub.name.split(' (')[0]],  // Solo el nombre, sin código
+                    mode: 'markers+text',
+                    marker: {
+                        size: markerSize,
+                        color: markerColor,
+                        line: { 
+                            width: borderWidth, 
+                            color: 'rgba(255,255,255,0.9)' 
+                        },
+                        symbol: markerSymbol,
+                        opacity: 1.0
+                    },
+                    textposition: 'top center',
+                    textfont: { 
+                        size: 12, 
+                        color: 'white', 
+                        family: 'Inter', 
+                        weight: 600,
+                        shadow: '0 0 10px rgba(0,0,0,0.8)'  // Sombra para mejor legibilidad
+                    },
+                    showlegend: false,
+                    hovertemplate: '<b>' + hub.name + '</b><br>' +
+                                 '🏢 Tipo: ' + hub.type.charAt(0).toUpperCase() + hub.type.slice(1) + '<br>' +
+                                 '📦 Carga: ' + (hub.cargo / 1000000).toFixed(1) + 'M tons/año<br>' +
+                                 '🌍 Región: ' + hub.region.charAt(0).toUpperCase() + hub.region.slice(1) + '<br>' +
+                                 '✈️ Operador: ' + hub.company + '<extra></extra>'
+                });
+            });
+
+            // 2. Rutas de Carga - Líneas refinadas y elegantes
+            routes.forEach(route => {
+                const fromHub = getHubByCode(route.from);
+                const toHub = getHubByCode(route.to);
+                
+                if (!fromHub || !toHub) return;
+
+                // Líneas más finas y refinadas
+                let lineWidth, lineOpacity, lineDash;
+                
+                if (route.type === 'major') {
+                    lineWidth = Math.max(1.2, Math.min(route.volume / 50000, 3));  // Más fino: máximo 3px
+                    lineOpacity = 0.8;
+                    lineDash = 'solid';
+                } else {
+                    lineWidth = Math.max(0.8, Math.min(route.volume / 60000, 2));  // Muy fino: máximo 2px
+                    lineOpacity = 0.7;
+                    lineDash = 'dot';  // Líneas punteadas para rutas regionales
+                }
+
+                // Sombra de la línea para profundidad (más sutil)
+                traces.push({
+                    type: 'scattergeo',
+                    lat: [fromHub.lat, toHub.lat],
+                    lon: [fromHub.lng, toHub.lng],
+                    mode: 'lines',
+                    line: {
+                        width: lineWidth + 0.6,  // Sombra más sutil
+                        color: 'rgba(0, 0, 0, 0.3)',  // Sombra más transparente
+                        opacity: 0.2
+                    },
+                    showlegend: false,
+                    hoverinfo: 'skip'
+                });
+
+                // Línea principal refinada
+                traces.push({
+                    type: 'scattergeo',
+                    lat: [fromHub.lat, toHub.lat],
+                    lon: [fromHub.lng, toHub.lng],
+                    mode: 'lines',
+                    line: {
+                        width: lineWidth,
+                        color: route.color,
+                        opacity: lineOpacity,
+                        dash: lineDash
+                    },
+                    showlegend: false,
+                    hovertemplate: '<b>🛩️ Ruta de Carga</b><br>' +
+                                 '📍 ' + fromHub.name.split(' (')[0] + ' → ' + toHub.name.split(' (')[0] + '<br>' +
+                                 '📦 Volumen: ' + (route.volume / 1000).toFixed(0) + 'K tons/año<br>' +
+                                 '🎯 Categoría: ' + route.type.charAt(0).toUpperCase() + route.type.slice(1) + '<br>' +
+                                 '📏 Distancia: ~' + calculateDistance(fromHub.lat, fromHub.lng, toHub.lat, toHub.lng).toFixed(0) + ' km<extra></extra>',
+                    hoverinfo: 'text'
+                });
+            });
+
+            // Layout del Globe con MAPAS REALES MEJORADO
+            const layout = {
+                geo: {
+                    scope: 'world',
+                    projection: {
+                        type: 'orthographic',  // PROYECCIÓN 3D QUE MUESTRA MAPAS REALES
+                        rotation: { lat: 15, lon: -30, roll: 0 }
+                    },
+                    showland: true,
+                    landcolor: 'rgba(45, 55, 75, 0.95)',     // Continentes más definidos
+                    showocean: true,
+                    oceancolor: 'rgba(15, 25, 45, 0.98)',    // Océanos más oscuros
+                    showcountries: true,
+                    countrycolor: 'rgba(0, 180, 255, 0.5)',  // Fronteras más brillantes
+                    countrywidth: 0.8,                       // Líneas de países más finas
+                    coastlinecolor: 'rgba(0, 220, 255, 0.7)', // Costas destacadas
+                    coastlinewidth: 1.2,                     // Costas más definidas
+                    showlakes: true,
+                    lakecolor: 'rgba(15, 25, 45, 0.9)',
+                    showrivers: false,
+                    showsubunits: true,                      // Subdivisiones administrativas
+                    subunitcolor: 'rgba(0, 150, 200, 0.3)', // Estados/provincias
+                    subunitwidth: 0.5,
+                    bgcolor: 'rgba(0,0,0,0)',
+                    showframe: false,
+                    framecolor: 'rgba(0,0,0,0)'
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: 'white', family: 'Inter', size: 12 },
+                margin: { l: 0, r: 0, t: 0, b: 0 },
+                showlegend: false,
+                height: window.innerHeight - 150,
+                hovermode: 'closest',
+                dragmode: 'orbit'  // Mejor interacción 3D
+            };
+
+            // Renderizar con Plotly - ESTO ES LA CLAVE PARA MAPAS REALES
+            Plotly.newPlot('world-globe', traces, layout, {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: [
+                    'pan2d', 'select2d', 'lasso2d', 'autoScale2d', 
+                    'toggleHover', 'toggleSpikelines'
+                ],
+                modeBarButtonsToAdd: [
+                    {
+                        name: 'Resetear Vista',
+                        icon: Plotly.Icons.home,
+                        click: () => resetView()
+                    }
+                ],
+                displaylogo: false,
+                toImageButtonOptions: {
+                    format: 'png',
+                    filename: 'world-freight-globe',
+                    height: 1000,
+                    width: 1400,
+                    scale: 2
+                },
+                scrollZoom: true,
+                doubleClick: 'reset',
+                showTips: false
+            });
+
+            // Actualizar métricas
+            updateMetrics(hubs, routes);
+        }
+
+        // Filtros
+        function filterByType(type) {
+            currentFilter = type;
+            
+            // Actualizar botones
+            document.querySelectorAll('[id^="filter-"]').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`filter-${type}`).classList.add('active');
+            
+            updateGlobe(type, currentRegion);
+        }
+
+        function filterByRegion(region) {
+            currentRegion = region;
+            
+            // Actualizar botones
+            document.querySelectorAll('[id^="filter-"][id$="s"]').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`filter-${region}`).classList.add('active');
+            
+            updateGlobe(currentFilter, region);
+        }
+
+        // Controles 3D
+        function rotateGlobe() {
+            const button = document.getElementById('rotate-btn');
+            
+            if (!isRotating) {
+                isRotating = true;
+                button.classList.add('active');
+                button.innerHTML = '<span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">stop</span>Detener Rotación';
+                
+                let rotation = -30;
+                rotationInterval = setInterval(() => {
+                    rotation += 1;
+                    Plotly.relayout('world-globe', {
+                        'geo.projection.rotation.lon': rotation
+                    });
+                }, 50);
+            } else {
+                isRotating = false;
+                button.classList.remove('active');
+                button.innerHTML = '<span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 6px;">rotate_right</span>Auto-Rotación';
+                clearInterval(rotationInterval);
+            }
+        }
+
+        function resetView() {
+            Plotly.relayout('world-globe', {
+                'geo.projection.rotation': { lat: 15, lon: -30, roll: 0 },
+                'geo.projection.scale': 1
+            });
+        }
+
+        function focusAmericas() {
+            Plotly.relayout('world-globe', {
+                'geo.projection.rotation': { lat: 0, lon: -95, roll: 0 },
+                'geo.projection.scale': 1.8
+            });
+        }
+
+        function focusEurope() {
+            Plotly.relayout('world-globe', {
+                'geo.projection.rotation': { lat: 20, lon: 0, roll: 0 },
+                'geo.projection.scale': 2.2
+            });
+        }
+
+        function focusAsia() {
+            Plotly.relayout('world-globe', {
+                'geo.projection.rotation': { lat: 0, lon: 120, roll: 0 },
+                'geo.projection.scale': 2.0
+            });
+        }
+
+        // Variables de animación
+        let animationInterval;
+        let isAnimating = false;
+        let aircraftPositions = [];
+
+        // Inicializar posiciones de aeronaves
+        function initializeAircraft() {
+            aircraftPositions = [];
+            WORLD_FREIGHT_DATA.routes.forEach((route, routeIndex) => {
+                const fromHub = getHubByCode(route.from);
+                const toHub = getHubByCode(route.to);
+                
+                if (!fromHub || !toHub) return;
+                
+                // Número de aviones basado en volumen de ruta
+                const numAircraft = Math.max(1, Math.floor(route.volume / 80000));
+                
+                for (let i = 0; i < numAircraft; i++) {
+                    aircraftPositions.push({
+                        routeIndex: routeIndex,
+                        progress: i / numAircraft, // Distribuir a lo largo de la ruta
+                        speed: 0.008 + (Math.random() * 0.004), // Velocidad variable
+                        route: route,
+                        fromHub: fromHub,
+                        toHub: toHub
+                    });
+                }
+            });
+        }
+
+        // Función de animación de aeronaves
+        function toggleAnimation() {
+            const button = document.querySelector('[onclick="toggleAnimation()"]');
+            
+            if (!isAnimating) {
+                isAnimating = true;
+                button.innerHTML = '<span class="material-icons" style="font-size: 14px;">pause</span> Pausar';
+                button.style.background = 'rgba(255, 107, 53, 0.2)';
+                
+                initializeAircraft();
+                
+                animationInterval = setInterval(() => {
+                    updateAircraftAnimation();
+                }, 100); // Actualizar cada 100ms
+                
+                console.log('▶ Animación de aeronaves iniciada');
+            } else {
+                isAnimating = false;
+                button.innerHTML = '<span class="material-icons" style="font-size: 14px;">play_arrow</span> Animar';
+                button.style.background = 'rgba(0, 212, 255, 0.1)';
+                
+                clearInterval(animationInterval);
+                
+                // Remover trazos de aeronaves
+                removeAircraftTraces();
+                
+                console.log('▶ Animación de aeronaves detenida');
+            }
+        }
+
+        // Actualizar posiciones de aeronaves
+        function updateAircraftAnimation() {
+            if (!isAnimating) return;
+            
+            // Actualizar posiciones
+            aircraftPositions.forEach(aircraft => {
+                aircraft.progress += aircraft.speed;
+                if (aircraft.progress > 1) aircraft.progress = 0;
+            });
+            
+            // Crear trazos de aeronaves
+            const aircraftTraces = [];
+            
+            aircraftPositions.forEach((aircraft, index) => {
+                // Interpolar posición entre origen y destino
+                const lat = aircraft.fromHub.lat + (aircraft.toHub.lat - aircraft.fromHub.lat) * aircraft.progress;
+                const lng = aircraft.fromHub.lng + (aircraft.toHub.lng - aircraft.toHub.lng) * aircraft.progress;
+                
+                aircraftTraces.push({
+                    type: 'scattergeo',
+                    lat: [lat],
+                    lon: [lng],
+                    mode: 'markers',
+                    marker: {
+                        size: 8,
+                        color: aircraft.route.color,
+                        symbol: 'triangle-up',
+                        opacity: 0.8,
+                        line: { width: 1, color: 'white' }
+                    },
+                    showlegend: false,
+                    hovertemplate: '<b>✈️ Aeronave en Vuelo</b><br>' +
+                                 'Ruta: ' + aircraft.fromHub.name.split(' (')[0] + ' → ' + aircraft.toHub.name.split(' (')[0] + '<br>' +
+                                 'Progreso: ' + (aircraft.progress * 100).toFixed(1) + '%<extra></extra>',
+                    name: `aircraft-${index}`
+                });
+            });
+            
+            // Agregar trazos al gráfico existente
+            if (aircraftTraces.length > 0) {
+                Plotly.addTraces('world-globe', aircraftTraces);
+            }
+            
+            // Remover trazos anteriores de aeronaves
+            setTimeout(() => {
+                removeAircraftTraces();
+            }, 90);
+        }
+
+        // Remover trazos de aeronaves
+        function removeAircraftTraces() {
+            const plotElement = document.getElementById('world-globe');
+            if (plotElement && plotElement.data) {
+                const aircraftIndices = [];
+                
+                plotElement.data.forEach((trace, index) => {
+                    if (trace.name && trace.name.startsWith('aircraft-')) {
+                        aircraftIndices.push(index);
+                    }
+                });
+                
+                if (aircraftIndices.length > 0) {
+                    Plotly.deleteTraces('world-globe', aircraftIndices);
+                }
+            }
+        }
+
+        function takeScreenshot() {
+            Plotly.toImage('world-globe', {format: 'png', width: 1400, height: 900})
+                .then(function(url) {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'world-freight-globe.png';
+                    a.click();
+                });
+        }
+
+        function toggleFullscreen() {
+            const container = document.querySelector('.map-container');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                container.requestFullscreen();
+            }
+        }
+
+        // Actualizar métricas con animación
+        function updateMetrics(hubs, routes) {
+            const totalCargo = hubs.reduce((sum, h) => sum + h.cargo, 0);
+            const totalVolume = routes.reduce((sum, r) => sum + r.volume, 0);
+            const majorHubs = hubs.filter(h => h.type === 'major').length;
+            const regionalHubs = hubs.filter(h => h.type === 'regional').length;
+            
+            // Animar números
+            animateNumber('total-hubs', hubs.length);
+            animateNumber('total-cargo', (totalCargo / 1000000).toFixed(1) + 'M');
+            animateNumber('total-routes', routes.length);
+            
+            // Calcular métricas adicionales
+            let totalDistance = 0;
+            let totalFlights = 0;
+            
+            routes.forEach(route => {
+                const fromHub = getHubByCode(route.from);
+                const toHub = getHubByCode(route.to);
+                if (fromHub && toHub) {
+                    const distance = calculateDistance(fromHub.lat, fromHub.lng, toHub.lat, toHub.lng);
+                    totalDistance += distance;
+                }
+            });
+            
+            hubs.forEach(hub => {
+                totalFlights += Math.floor(hub.cargo / 100); // Estimación de vuelos
+            });
+            
+            animateNumber('avg-distance', (totalDistance / routes.length / 1000).toFixed(1) + 'K');
+            
+            // Calcular eficiencia de red (métrica sintética)
+            const efficiency = Math.min(100, (totalVolume / totalDistance * 1000000).toFixed(0));
+            animateNumber('efficiency', efficiency + '%');
+            
+            // Actualizar información contextual
+            updateContextInfo(majorHubs, regionalHubs, totalVolume);
+        }
+
+        // Función para animar números
+        function animateNumber(elementId, finalValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const isNumeric = !isNaN(parseFloat(finalValue));
+            if (isNumeric) {
+                const start = parseFloat(element.textContent) || 0;
+                const end = parseFloat(finalValue);
+                const suffix = finalValue.toString().replace(/[0-9.]/g, '');
+                
+                const duration = 800;
+                const steps = 30;
+                const increment = (end - start) / steps;
+                let current = start;
+                let step = 0;
+                
+                const interval = setInterval(() => {
+                    current += increment;
+                    step++;
+                    
+                    if (step >= steps) {
+                        element.textContent = finalValue;
+                        clearInterval(interval);
+                    } else {
+                        element.textContent = current.toFixed(1) + suffix;
+                    }
+                }, duration / steps);
+            } else {
+                element.textContent = finalValue;
+            }
+        }
+
+        // Actualizar información contextual
+        function updateContextInfo(majorHubs, regionalHubs, totalVolume) {
+            // Calcular estadísticas dinámicas
+            const topHub = WORLD_FREIGHT_DATA.hubs.reduce((max, hub) => 
+                hub.cargo > max.cargo ? hub : max
+            );
+            
+            console.log(`📊 Métricas actualizadas:
+                - Total Hubs: ${majorHubs + regionalHubs}
+                - Major Hubs: ${majorHubs}
+                - Regional Hubs: ${regionalHubs}
+                - Top Hub: ${topHub.name} (${(topHub.cargo/1000000).toFixed(1)}M tons)
+                - Volumen Total Rutas: ${(totalVolume/1000000).toFixed(1)}M tons`);
+        }
+
+        // Calcular distancia entre coordenadas
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('▶ World Freight Globe iniciado');
+            
+            setTimeout(() => {
+                initializeGlobe();
+            }, 500);
+        });
+
+        // Responsive
+        window.addEventListener('resize', function() {
+            Plotly.Plots.resize('world-globe');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globe 3D Demo - World Freight Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: white; min-height: 100vh; overflow: hidden;
+        }
+        
+        .container {
+            width: 100vw; height: 100vh;
+            position: relative; display: flex; align-items: center; justify-content: center;
+        }
+        
+        #globe-container {
+            width: 90vw; height: 90vh; max-width: 1000px; max-height: 600px;
+            background: rgba(0, 0, 0, 0.3); border-radius: 20px;
+            position: relative; overflow: hidden;
+            border: 2px solid rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 50px rgba(6, 182, 212, 0.2);
+        }
+        
+        .controls {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        
+        .control-btn {
+            padding: 10px; background: rgba(0, 0, 0, 0.7); border: none;
+            border-radius: 8px; color: white; cursor: pointer;
+            transition: all 0.3s ease; font-size: 12px;
+            min-width: 120px; text-align: left;
+        }
+        
+        .control-btn:hover { background: rgba(6, 182, 212, 0.3); }
+        .control-btn.active { background: rgba(6, 182, 212, 0.5); }
+        
+        .stats {
+            position: absolute; top: 20px; right: 20px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px;
+            font-size: 12px; min-width: 200px;
+        }
+        
+        .legend {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px;
+            font-size: 11px; max-width: 200px;
+        }
+        
+        .info {
+            position: absolute; bottom: 20px; right: 20px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px;
+            font-size: 11px; max-width: 250px;
+        }
+        
+        .title {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2rem; font-weight: bold; z-index: 999;
+            background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; text-align: center; pointer-events: none;
+        }
+        
+        .loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 999; text-align: center; pointer-events: none;
+        }
+        
+        .spinner { animation: spin 1s linear infinite; font-size: 2rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .hub-major { color: #ff6b35; }
+        .hub-regional { color: #f7931e; }
+        .hub-international { color: #06b6d4; }
+        
+        .instructions {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8); padding: 10px 20px; border-radius: 20px;
+            font-size: 11px; z-index: 1000; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="globe-container">
+            <!-- Loading Screen -->
+            <div class="loading" id="loading">
+                <div class="spinner">🌍</div>
+                <p style="margin-top: 10px;">Cargando Globo 3D...</p>
+            </div>
+            
+            <!-- Title -->
+            <div class="title" id="title" style="display: none;">
+                🌍 Global Trade Routes
+            </div>
+            
+            <!-- Instructions -->
+            <div class="instructions">
+                🖱️ Arrastra: Rotar | 🔄 Scroll: Zoom | 🎮 Botones: Controles
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button class="control-btn active" id="auto-rotate">
+                    🔄 Auto Rotación: ON
+                </button>
+                <button class="control-btn" id="reset-view">
+                    📍 Reset Vista
+                </button>
+                <button class="control-btn active" id="show-routes">
+                    ✈️ Rutas: ON
+                </button>
+                <button class="control-btn active" id="show-airports">
+                    🏢 Aeropuertos: ON
+                </button>
+                <button class="control-btn" id="toggle-stats">
+                    📊 Stats: OFF
+                </button>
+            </div>
+            
+            <!-- Stats Panel -->
+            <div class="stats" id="stats" style="display: none;">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #06b6d4;">📊 Estadísticas en Tiempo Real</div>
+                <div>🛫 Rutas Activas: 8</div>
+                <div>🏢 Major Hubs: 10</div>
+                <div>✈️ Aviones Volando: 24</div>
+                <div>📦 Carga Total: 28.5M tons/año</div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
+                    <div style="color: #4ade80;">🔴 Ruta más activa:</div>
+                    <div style="font-size: 10px;">HKG → MEM (285K tons)</div>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="legend">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #06b6d4;">🗺️ Leyenda</div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color: #ff6b35;">●</span> Major Hub (4.6M+ tons)
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color: #f7931e;">●</span> Regional Hub (1M+ tons)
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color: #06b6d4;">●</span> Internacional (500K+ tons)
+                </div>
+                <div style="margin-top: 10px; font-size: 10px; color: #888;">
+                    Datos: Volúmenes de carga 2024<br>
+                    Rutas: Principales corredores globales
+                </div>
+            </div>
+            
+            <!-- Info Panel -->
+            <div class="info">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #06b6d4;">ℹ️ Información</div>
+                <div style="margin-bottom: 8px; color: #4ade80;"><strong>AEROPUERTOS DESTACADOS:</strong></div>
+                <div style="font-size: 10px; line-height: 1.4;">
+                    • <span class="hub-major">Memphis (MEM)</span> - FedEx Hub Principal<br>
+                    • <span class="hub-major">Hong Kong (HKG)</span> - Gateway Asia-Pacífico<br>
+                    • <span class="hub-major">Shanghai (PVG)</span> - Puerto Aéreo China<br>
+                    • <span class="hub-regional">Frankfurt (FRA)</span> - Hub Europeo<br>
+                    • <span class="hub-regional">Dubai (DXB)</span> - Conexión Oriente Medio
+                </div>
+                <div style="margin-top: 8px; color: #4ade80;"><strong>RUTAS PRINCIPALES:</strong></div>
+                <div style="font-size: 10px; line-height: 1.4;">
+                    • Trans-Pacífico: Asia → USA<br>
+                    • Trans-Atlántico: Europa → USA<br>
+                    • Europa-Asia: Ruta de la Seda Aérea<br>
+                    • Middle East Hub: Conexiones globales
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // Global variables
+        let scene, camera, renderer, globe, clouds, atmosphere;
+        let autoRotate = true;
+        let showRoutes = true;
+        let showAirports = true;
+        let showStats = false;
+        let aircraftList = [];
+        let routeGroup, airportGroup;
+        
+        // Major airports data
+        const AIRPORTS = [
+            { code: 'MEM', name: 'Memphis', city: 'Memphis, USA', lat: 35.0424, lng: -89.9767, type: 'major', cargo: 4613000 },
+            { code: 'ANC', name: 'Anchorage', city: 'Anchorage, USA', lat: 61.1744, lng: -149.9961, type: 'major', cargo: 3162000 },
+            { code: 'HKG', name: 'Hong Kong', city: 'Hong Kong', lat: 22.3080, lng: 113.9185, type: 'major', cargo: 4520000 },
+            { code: 'PVG', name: 'Shanghai Pudong', city: 'Shanghai, China', lat: 31.1443, lng: 121.8083, type: 'major', cargo: 3630000 },
+            { code: 'LAX', name: 'Los Angeles', city: 'Los Angeles, USA', lat: 34.0522, lng: -118.2437, type: 'major', cargo: 2268000 },
+            { code: 'FRA', name: 'Frankfurt', city: 'Frankfurt, Germany', lat: 50.0379, lng: 8.5622, type: 'regional', cargo: 2280000 },
+            { code: 'LHR', name: 'London Heathrow', city: 'London, UK', lat: 51.4700, lng: -0.4543, type: 'regional', cargo: 1770000 },
+            { code: 'DXB', name: 'Dubai', city: 'Dubai, UAE', lat: 25.2532, lng: 55.3657, type: 'regional', cargo: 2650000 },
+            { code: 'ICN', name: 'Seoul Incheon', city: 'Seoul, South Korea', lat: 37.4602, lng: 126.4407, type: 'regional', cargo: 2840000 },
+            { code: 'SIN', name: 'Singapore Changi', city: 'Singapore', lat: 1.3644, lng: 103.9915, type: 'international', cargo: 2030000 }
+        ];
+        
+        // Major trade routes
+        const ROUTES = [
+            { from: 'HKG', to: 'MEM', volume: 285000, color: '#00bcd4' },
+            { from: 'PVG', to: 'LAX', volume: 240000, color: '#4caf50' },
+            { from: 'FRA', to: 'MEM', volume: 180000, color: '#9c27b0' },
+            { from: 'LHR', to: 'MEM', volume: 165000, color: '#f44336' },
+            { from: 'DXB', to: 'FRA', volume: 125000, color: '#ff5722' },
+            { from: 'SIN', to: 'DXB', volume: 98000, color: '#795548' },
+            { from: 'ICN', to: 'PVG', volume: 87000, color: '#607d8b' },
+            { from: 'ANC', to: 'LAX', volume: 195000, color: '#ff9800' }
+        ];
+        
+        // Initialize Three.js
+        function init() {
+            const container = document.getElementById('globe-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            // Create Earth
+            createEarth();
+            createAtmosphere();
+            createClouds();
+            
+            // Create airports and routes
+            createAirports();
+            createRoutes();
+            
+            // Mouse controls
+            setupControls();
+            
+            // Hide loading, show title
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('title').style.display = 'block';
+            
+            // Start animation
+            animate();
+        }
+        
+        function createEarth() {
+            const geometry = new THREE.SphereGeometry(5, 64, 32);
+            
+            // Create simple earth material with continents
+            const material = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    
+                    vec3 getEarthColor(vec2 uv) {
+                        // Create continent-like patterns
+                        float landMask = 0.0;
+                        
+                        // North America
+                        if (uv.x > 0.15 && uv.x < 0.4 && uv.y > 0.4 && uv.y < 0.8) landMask += 0.8;
+                        // Europe
+                        if (uv.x > 0.45 && uv.x < 0.6 && uv.y > 0.55 && uv.y < 0.75) landMask += 0.7;
+                        // Asia
+                        if (uv.x > 0.6 && uv.x < 0.9 && uv.y > 0.4 && uv.y < 0.8) landMask += 0.8;
+                        // South America
+                        if (uv.x > 0.25 && uv.x < 0.4 && uv.y > 0.1 && uv.y < 0.5) landMask += 0.6;
+                        // Africa
+                        if (uv.x > 0.45 && uv.x < 0.65 && uv.y > 0.2 && uv.y < 0.65) landMask += 0.7;
+                        // Australia
+                        if (uv.x > 0.75 && uv.x < 0.9 && uv.y > 0.15 && uv.y < 0.35) landMask += 0.5;
+                        
+                        // Add some noise for coastlines
+                        landMask += sin(uv.x * 50.0) * cos(uv.y * 30.0) * 0.1;
+                        landMask = smoothstep(0.3, 0.6, landMask);
+                        
+                        vec3 oceanColor = vec3(0.1, 0.2, 0.6);
+                        vec3 landColor = vec3(0.2, 0.5, 0.1);
+                        vec3 desertColor = vec3(0.6, 0.5, 0.2);
+                        
+                        vec3 color = mix(oceanColor, landColor, landMask);
+                        
+                        // Add desert regions around tropics
+                        float tropicFactor = abs(vUv.y - 0.5) * 2.0;
+                        if (tropicFactor > 0.6 && tropicFactor < 0.8 && landMask > 0.5) {
+                            color = mix(color, desertColor, 0.7);
+                        }
+                        
+                        return color;
+                    }
+                    
+                    void main() {
+                        vec3 earthColor = getEarthColor(vUv);
+                        
+                        // Add day/night terminator effect
+                        float dayNight = dot(vNormal, normalize(vec3(1.0, 0.5, 1.0)));
+                        earthColor *= 0.5 + 0.5 * max(0.0, dayNight);
+                        
+                        // Add city lights on night side
+                        if (dayNight < 0.2) {
+                            float cities = sin(vUv.x * 100.0) * cos(vUv.y * 80.0);
+                            cities = smoothstep(0.9, 1.0, cities);
+                            earthColor += vec3(1.0, 0.8, 0.4) * cities * 0.3;
+                        }
+                        
+                        gl_FragColor = vec4(earthColor, 1.0);
+                    }
+                `
+            });
+            
+            globe = new THREE.Mesh(geometry, material);
+            scene.add(globe);
+        }
+        
+        function createAtmosphere() {
+            const geometry = new THREE.SphereGeometry(5.3, 64, 32);
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    c: { value: 0.6 },
+                    p: { value: 6.0 }
+                },
+                vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float c;
+                    uniform float p;
+                    varying vec3 vNormal;
+                    void main() {
+                        float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p);
+                        gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+                    }
+                `,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+            
+            atmosphere = new THREE.Mesh(geometry, material);
+            scene.add(atmosphere);
+        }
+        
+        function createClouds() {
+            const geometry = new THREE.SphereGeometry(5.1, 64, 32);
+            const material = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    varying vec2 vUv;
+                    
+                    float noise(vec2 p) {
+                        return sin(p.x * 12.0 + time * 0.3) * cos(p.y * 8.0 + time * 0.2) * 0.5 + 0.5;
+                    }
+                    
+                    void main() {
+                        float clouds = noise(vUv * 4.0) * noise(vUv * 2.0);
+                        clouds = smoothstep(0.4, 0.8, clouds);
+                        gl_FragColor = vec4(1.0, 1.0, 1.0, clouds * 0.4);
+                    }
+                `,
+                transparent: true
+            });
+            
+            clouds = new THREE.Mesh(geometry, material);
+            scene.add(clouds);
+        }
+        
+        function latLngToVector3(lat, lng, radius = 5.05) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lng + 180) * (Math.PI / 180);
+            
+            return new THREE.Vector3(
+                -(radius * Math.sin(phi) * Math.cos(theta)),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+        
+        function createAirports() {
+            airportGroup = new THREE.Group();
+            
+            AIRPORTS.forEach(airport => {
+                const position = latLngToVector3(airport.lat, airport.lng);
+                
+                let size = 0.08;
+                let color = '#06b6d4';
+                
+                if (airport.type === 'major') {
+                    size = 0.15;
+                    color = '#ff6b35';
+                } else if (airport.type === 'regional') {
+                    size = 0.12;
+                    color = '#f7931e';
+                }
+                
+                const geometry = new THREE.SphereGeometry(size, 16, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color),
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const marker = new THREE.Mesh(geometry, material);
+                marker.position.copy(position);
+                marker.userData = { airport, type: 'airport' };
+                
+                // Add pulsing ring for major hubs
+                if (airport.type === 'major') {
+                    const ringGeometry = new THREE.RingGeometry(size * 1.5, size * 2.5, 16);
+                    const ringMaterial = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color(color),
+                        transparent: true,
+                        opacity: 0.4,
+                        side: THREE.DoubleSide
+                    });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    ring.position.copy(position);
+                    ring.lookAt(new THREE.Vector3(0, 0, 0));
+                    airportGroup.add(ring);
+                }
+                
+                airportGroup.add(marker);
+            });
+            
+            if (showAirports) scene.add(airportGroup);
+        }
+        
+        function createRoutes() {
+            routeGroup = new THREE.Group();
+            aircraftList = [];
+            
+            ROUTES.forEach((route, index) => {
+                const fromAirport = AIRPORTS.find(a => a.code === route.from);
+                const toAirport = AIRPORTS.find(a => a.code === route.to);
+                
+                if (!fromAirport || !toAirport) return;
+                
+                const fromPos = latLngToVector3(fromAirport.lat, fromAirport.lng);
+                const toPos = latLngToVector3(toAirport.lat, toAirport.lng);
+                
+                // Create curved route
+                const midPoint = fromPos.clone().add(toPos).normalize().multiplyScalar(7);
+                const curve = new THREE.QuadraticBezierCurve3(fromPos, midPoint, toPos);
+                
+                // Route line
+                const points = curve.getPoints(100);
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({
+                    color: new THREE.Color(route.color),
+                    transparent: true,
+                    opacity: 0.7,
+                    linewidth: 3
+                });
+                
+                const line = new THREE.Line(geometry, material);
+                routeGroup.add(line);
+                
+                // Add aircraft
+                for (let i = 0; i < 3; i++) {
+                    const aircraftGeometry = new THREE.ConeGeometry(0.04, 0.15, 6);
+                    const aircraftMaterial = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color(route.color),
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    
+                    const aircraft = new THREE.Mesh(aircraftGeometry, aircraftMaterial);
+                    
+                    aircraftList.push({
+                        mesh: aircraft,
+                        curve: curve,
+                        progress: i * 0.33,
+                        speed: 0.003 + Math.random() * 0.002,
+                        route: route
+                    });
+                    
+                    routeGroup.add(aircraft);
+                }
+            });
+            
+            if (showRoutes) scene.add(routeGroup);
+        }
+        
+        function setupControls() {
+            const container = document.getElementById('globe-container');
+            let mouseX = 0, mouseY = 0;
+            let targetRotationX = 0, targetRotationY = 0;
+            
+            container.addEventListener('mousemove', (event) => {
+                const rect = container.getBoundingClientRect();
+                mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                if (!autoRotate) {
+                    targetRotationX = mouseY * 0.3;
+                    targetRotationY = mouseX * 0.5;
+                }
+            });
+            
+            container.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                camera.position.z += event.deltaY * 0.01;
+                camera.position.z = Math.max(8, Math.min(25, camera.position.z));
+            });
+            
+            // Button controls
+            document.getElementById('auto-rotate').addEventListener('click', () => {
+                autoRotate = !autoRotate;
+                const btn = document.getElementById('auto-rotate');
+                btn.textContent = autoRotate ? '🔄 Auto Rotación: ON' : '🔄 Auto Rotación: OFF';
+                btn.classList.toggle('active', autoRotate);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                camera.position.set(0, 0, 15);
+                if (globe) {
+                    globe.rotation.set(0, 0, 0);
+                }
+            });
+            
+            document.getElementById('show-routes').addEventListener('click', () => {
+                showRoutes = !showRoutes;
+                const btn = document.getElementById('show-routes');
+                btn.textContent = showRoutes ? '✈️ Rutas: ON' : '✈️ Rutas: OFF';
+                btn.classList.toggle('active', showRoutes);
+                
+                if (showRoutes) {
+                    scene.add(routeGroup);
+                } else {
+                    scene.remove(routeGroup);
+                }
+            });
+            
+            document.getElementById('show-airports').addEventListener('click', () => {
+                showAirports = !showAirports;
+                const btn = document.getElementById('show-airports');
+                btn.textContent = showAirports ? '🏢 Aeropuertos: ON' : '🏢 Aeropuertos: OFF';
+                btn.classList.toggle('active', showAirports);
+                
+                if (showAirports) {
+                    scene.add(airportGroup);
+                } else {
+                    scene.remove(airportGroup);
+                }
+            });
+            
+            document.getElementById('toggle-stats').addEventListener('click', () => {
+                showStats = !showStats;
+                const btn = document.getElementById('toggle-stats');
+                const statsPanel = document.getElementById('stats');
+                btn.textContent = showStats ? '📊 Stats: ON' : '📊 Stats: OFF';
+                btn.classList.toggle('active', showStats);
+                statsPanel.style.display = showStats ? 'block' : 'none';
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Auto rotation
+            if (autoRotate && globe) {
+                globe.rotation.y += 0.002;
+            }
+            
+            // Clouds rotation
+            if (clouds) {
+                clouds.rotation.y += 0.001;
+            }
+            
+            // Update shaders
+            if (globe && globe.material.uniforms) {
+                globe.material.uniforms.time.value += 0.01;
+            }
+            
+            if (clouds && clouds.material.uniforms) {
+                clouds.material.uniforms.time.value += 0.01;
+            }
+            
+            // Animate aircraft
+            aircraftList.forEach(aircraft => {
+                aircraft.progress += aircraft.speed;
+                if (aircraft.progress > 1) aircraft.progress = 0;
+                
+                const position = aircraft.curve.getPoint(aircraft.progress);
+                const nextPosition = aircraft.curve.getPoint(Math.min(aircraft.progress + 0.01, 1));
+                
+                aircraft.mesh.position.copy(position);
+                aircraft.mesh.lookAt(nextPosition);
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('globe-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

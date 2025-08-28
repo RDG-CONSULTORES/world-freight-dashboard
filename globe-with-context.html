@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 Globe with Geographic Context - World Freight</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            background: radial-gradient(ellipse at center, #0a0e27 0%, #000000 100%);
+            color: #00ff88; min-height: 100vh; overflow: hidden;
+        }
+        
+        .container {
+            width: 100vw; height: 100vh; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        #globe-container {
+            width: 95vw; height: 95vh;
+            position: relative; border-radius: 20px; overflow: hidden;
+            background: radial-gradient(circle, rgba(0,100,200,0.1) 0%, rgba(0,0,0,0.8) 100%);
+            border: 2px solid #00ff88;
+            box-shadow: 0 0 50px #00ff88;
+        }
+        
+        /* Geographic Labels */
+        .geo-label {
+            position: absolute; z-index: 1001; 
+            background: rgba(0,0,0,0.8); border: 1px solid #00ff88;
+            padding: 8px 12px; border-radius: 15px; font-size: 11px;
+            color: #00ff88; font-weight: 700; text-align: center;
+            box-shadow: 0 0 10px rgba(0,255,136,0.5);
+            pointer-events: none; white-space: nowrap;
+        }
+        
+        .continent-label {
+            font-size: 14px; color: #66ccff; border-color: #66ccff;
+            background: rgba(0,100,255,0.1);
+        }
+        
+        .country-label {
+            font-size: 10px; color: #ffaa00; border-color: #ffaa00;
+            background: rgba(255,170,0,0.1);
+        }
+        
+        /* Hub Information Panels */
+        .hub-info {
+            position: absolute; z-index: 1002; 
+            background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,100,255,0.1) 100%);
+            border: 1px solid #00ff88; border-radius: 10px; padding: 12px;
+            min-width: 200px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+            font-size: 10px; line-height: 1.4;
+        }
+        
+        .hub-name { 
+            color: #00ff88; font-size: 12px; font-weight: 700; margin-bottom: 5px;
+            text-shadow: 0 0 5px #00ff88;
+        }
+        
+        .hub-stats { color: #66ccff; margin: 3px 0; }
+        
+        .route-info {
+            position: absolute; z-index: 1003;
+            background: rgba(255,102,0,0.9); border: 1px solid #ff6600;
+            border-radius: 8px; padding: 10px; font-size: 9px;
+            color: white; max-width: 180px;
+            box-shadow: 0 0 15px rgba(255,102,0,0.5);
+        }
+        
+        .route-title { 
+            font-weight: 700; margin-bottom: 5px; color: #ffff00;
+        }
+        
+        /* Main HUD */
+        .main-hud {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,100,255,0.1) 100%);
+            border: 1px solid #00ff88; border-radius: 10px; padding: 20px;
+            backdrop-filter: blur(10px); min-width: 300px;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+        }
+        
+        .hud-title {
+            font-size: 16px; font-weight: 900; margin-bottom: 15px;
+            color: #00ff88; text-shadow: 0 0 10px #00ff88;
+        }
+        
+        .context-section {
+            margin-bottom: 12px; padding: 8px 0;
+            border-bottom: 1px solid rgba(0,255,136,0.2);
+        }
+        
+        .context-label { 
+            font-size: 10px; color: #66ccff; margin-bottom: 3px; 
+        }
+        
+        .context-value { 
+            font-size: 12px; font-weight: 700; color: #00ff88;
+        }
+        
+        .legend {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: rgba(0,0,0,0.8); border: 1px solid #00ff88;
+            border-radius: 10px; padding: 15px; font-size: 11px;
+        }
+        
+        .legend-title {
+            color: #00ff88; font-weight: 700; margin-bottom: 10px;
+        }
+        
+        .legend-item {
+            display: flex; align-items: center; gap: 10px; margin: 5px 0;
+        }
+        
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 50%; 
+            box-shadow: 0 0 5px currentColor;
+        }
+        
+        .controls {
+            position: absolute; bottom: 20px; right: 20px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        
+        .nasa-btn {
+            background: linear-gradient(135deg, rgba(0,255,136,0.2) 0%, rgba(0,100,255,0.2) 100%);
+            border: 1px solid #00ff88; color: #00ff88; padding: 10px 15px;
+            border-radius: 20px; cursor: pointer; font-family: 'Orbitron', monospace;
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            transition: all 0.3s ease; backdrop-filter: blur(10px);
+            text-align: center; min-width: 140px;
+        }
+        
+        .nasa-btn:hover {
+            background: linear-gradient(135deg, rgba(0,255,136,0.4) 0%, rgba(0,100,255,0.4) 100%);
+            box-shadow: 0 0 20px rgba(0,255,136,0.5);
+        }
+        
+        .nasa-btn.active {
+            background: linear-gradient(135deg, #00ff88 0%, #0099ff 100%);
+            color: #000; box-shadow: 0 0 25px #00ff88;
+        }
+        
+        .route-line {
+            position: absolute; z-index: 500;
+            pointer-events: none;
+        }
+        
+        .loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 999; text-align: center; color: #00ff88;
+        }
+        
+        .loading-spinner {
+            width: 50px; height: 50px; border: 3px solid rgba(0,255,136,0.3);
+            border-top: 3px solid #00ff88; border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="globe-container">
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <div style="font-size: 14px; font-weight: 700;">Loading Geographic Data...</div>
+            </div>
+            
+            <!-- Main HUD with Context -->
+            <div class="main-hud" id="main-hud" style="display: none;">
+                <div class="hud-title">🌍 GEOGRAPHIC CONTEXT</div>
+                
+                <div class="context-section">
+                    <div class="context-label">VIEWING REGION</div>
+                    <div class="context-value" id="current-region">Pacific Ocean</div>
+                </div>
+                
+                <div class="context-section">
+                    <div class="context-label">MAJOR CONTINENTS VISIBLE</div>
+                    <div class="context-value" id="visible-continents">Asia, North America</div>
+                </div>
+                
+                <div class="context-section">
+                    <div class="context-label">ACTIVE CARGO HUBS</div>
+                    <div class="context-value" id="active-hubs">8 Major Hubs</div>
+                </div>
+                
+                <div class="context-section">
+                    <div class="context-label">CURRENT FOCUS</div>
+                    <div class="context-value" id="current-focus">Trans-Pacific Trade</div>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-title">🗺️ GEOGRAPHIC REFERENCE</div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ff3366;"></div>
+                    <span>SuperHub (4M+ tons)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ffaa00;"></div>
+                    <span>Major Hub (2M+ tons)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00ff88;"></div>
+                    <span>Regional Hub (1M+ tons)</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 9px; color: #66ccff;">
+                    📍 Click hubs for detailed information<br>
+                    ✈️ Hover routes to see cargo data<br>
+                    🖱️ Drag to explore continents
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button class="nasa-btn active" id="show-labels">🏷️ SHOW LABELS</button>
+                <button class="nasa-btn active" id="show-routes">✈️ CARGO ROUTES</button>
+                <button class="nasa-btn active" id="show-hubs">🏢 HUB INFO</button>
+                <button class="nasa-btn" id="pause-rotation">⏸️ PAUSE EARTH</button>
+                <button class="nasa-btn" id="reset-view">📍 RESET VIEW</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // Global variables
+        let scene, camera, renderer, earth, earthGroup;
+        let showLabels = true, showRoutes = true, showHubs = true;
+        let earthRotating = true;
+        let currentView = { region: 'Pacific Ocean', continents: 'Asia, North America', focus: 'Trans-Pacific Trade' };
+        
+        // Real geographic data with context
+        const GEOGRAPHIC_REGIONS = {
+            'Pacific Ocean': { continents: 'Asia, North America, Oceania', focus: 'Trans-Pacific Trade' },
+            'Atlantic Ocean': { continents: 'Europe, North America, Africa', focus: 'Trans-Atlantic Commerce' },
+            'Europe': { continents: 'Europe, Asia, Africa', focus: 'European Hub Network' },
+            'Asia': { continents: 'Asia, Middle East, Europe', focus: 'Asian Manufacturing Hubs' },
+            'North America': { continents: 'North America, Central America', focus: 'NAFTA Trade Corridor' }
+        };
+        
+        // Major cargo hubs with geographic context
+        const CARGO_HUBS = [
+            { 
+                code: 'MEM', name: 'Memphis International', 
+                lat: 35.0424, lng: -89.9767, cargo: 4613, type: 'superhub',
+                city: 'Memphis', state: 'Tennessee', country: 'USA', continent: 'North America',
+                description: 'FedEx SuperHub - Americas Distribution Center',
+                significance: 'Central US location enables overnight delivery across North America'
+            },
+            { 
+                code: 'HKG', name: 'Hong Kong International', 
+                lat: 22.3080, lng: 113.9185, cargo: 4520, type: 'superhub',
+                city: 'Hong Kong', country: 'Hong Kong SAR', continent: 'Asia',
+                description: 'Asia-Pacific Gateway Hub',
+                significance: 'Strategic location connecting China manufacturing with global markets'
+            },
+            { 
+                code: 'PVG', name: 'Shanghai Pudong', 
+                lat: 31.1443, lng: 121.8083, cargo: 3630, type: 'superhub',
+                city: 'Shanghai', country: 'China', continent: 'Asia',
+                description: 'China\'s Primary International Cargo Hub',
+                significance: 'Gateway to world\'s largest manufacturing region'
+            },
+            { 
+                code: 'ANC', name: 'Ted Stevens Anchorage', 
+                lat: 61.1744, lng: -149.9961, cargo: 3162, type: 'superhub',
+                city: 'Anchorage', state: 'Alaska', country: 'USA', continent: 'North America',
+                description: 'Pacific Rim Refueling & Transfer Hub',
+                significance: 'Optimal great circle route midpoint for Asia-US cargo flights'
+            },
+            { 
+                code: 'FRA', name: 'Frankfurt Airport', 
+                lat: 50.0379, lng: 8.5622, cargo: 2280, type: 'major',
+                city: 'Frankfurt', country: 'Germany', continent: 'Europe',
+                description: 'European Central Hub',
+                significance: 'Geographic center of Europe with extensive ground connections'
+            },
+            { 
+                code: 'LHR', name: 'London Heathrow', 
+                lat: 51.4700, lng: -0.4543, cargo: 1770, type: 'major',
+                city: 'London', country: 'United Kingdom', continent: 'Europe',
+                description: 'European Financial & Trade Center',
+                significance: 'Historic trade hub connecting Europe, Americas, and Commonwealth'
+            },
+            { 
+                code: 'DXB', name: 'Dubai International', 
+                lat: 25.2532, lng: 55.3657, cargo: 2650, type: 'major',
+                city: 'Dubai', country: 'UAE', continent: 'Middle East',
+                description: 'Middle East Transfer Hub',
+                significance: 'Strategic position connecting Europe, Asia, Africa, and Australia'
+            },
+            { 
+                code: 'LAX', name: 'Los Angeles International', 
+                lat: 34.0522, lng: -118.2437, cargo: 2268, type: 'major',
+                city: 'Los Angeles', state: 'California', country: 'USA', continent: 'North America',
+                description: 'US West Coast Gateway',
+                significance: 'Primary entry point for Asian imports to US West Coast'
+            }
+        ];
+        
+        // Major cargo routes with business context
+        const CARGO_ROUTES = [
+            {
+                from: 'HKG', to: 'MEM', volume: 285000, color: '#00ffff',
+                description: 'Asia Manufacturing → US Distribution',
+                cargo_type: 'Electronics, Consumer Goods, Textiles',
+                business_reason: 'Chinese/Asian manufactured goods to US market via FedEx hub',
+                frequency: '6 daily flights', distance: '17,089 km'
+            },
+            {
+                from: 'PVG', to: 'LAX', volume: 240000, color: '#00ff00',
+                description: 'China Export → US West Coast',
+                cargo_type: 'Manufacturing Components, Electronics',
+                business_reason: 'Direct China-US trade corridor for high-value manufactured goods',
+                frequency: '5 daily flights', distance: '11,130 km'
+            },
+            {
+                from: 'FRA', to: 'MEM', volume: 195000, color: '#ff00ff',
+                description: 'European Exports → US Central',
+                cargo_type: 'Automotive Parts, Pharmaceuticals, Machinery',
+                business_reason: 'German/European industrial exports to North American markets',
+                frequency: '4 daily flights', distance: '7,320 km'
+            },
+            {
+                from: 'ANC', to: 'LAX', volume: 180000, color: '#ffff00',
+                description: 'Pacific Transfer → US Distribution',
+                cargo_type: 'Transshipped Asian Goods',
+                business_reason: 'Fuel-efficient staging point for Asian cargo to US',
+                frequency: '4 daily flights', distance: '3,650 km'
+            },
+            {
+                from: 'DXB', to: 'FRA', volume: 165000, color: '#ff8000',
+                description: 'Middle East Hub → Europe Gateway',
+                cargo_type: 'Oil & Gas Equipment, Regional Products',
+                business_reason: 'Emirates hub connecting Asia/Africa with European markets',
+                frequency: '3 daily flights', distance: '4,947 km'
+            },
+            {
+                from: 'LHR', to: 'MEM', volume: 155000, color: '#8000ff',
+                description: 'UK/Europe → US Distribution',
+                cargo_type: 'Financial Documents, Pharmaceuticals',
+                business_reason: 'UK financial center and European goods to US markets',
+                frequency: '3 daily flights', distance: '6,800 km'
+            }
+        ];
+        
+        // Geographic labels for context
+        const GEO_LABELS = [
+            // Continents
+            { text: 'NORTH AMERICA', lat: 45, lng: -100, type: 'continent' },
+            { text: 'SOUTH AMERICA', lat: -15, lng: -60, type: 'continent' },
+            { text: 'EUROPE', lat: 55, lng: 10, type: 'continent' },
+            { text: 'AFRICA', lat: 0, lng: 20, type: 'continent' },
+            { text: 'ASIA', lat: 35, lng: 100, type: 'continent' },
+            { text: 'AUSTRALIA', lat: -25, lng: 135, type: 'continent' },
+            
+            // Oceans
+            { text: 'PACIFIC OCEAN', lat: 0, lng: 180, type: 'ocean' },
+            { text: 'ATLANTIC OCEAN', lat: 15, lng: -30, type: 'ocean' },
+            
+            // Key Countries
+            { text: 'USA', lat: 38, lng: -95, type: 'country' },
+            { text: 'CHINA', lat: 35, lng: 104, type: 'country' },
+            { text: 'GERMANY', lat: 51, lng: 9, type: 'country' },
+            { text: 'UK', lat: 54, lng: -2, type: 'country' },
+            { text: 'UAE', lat: 24, lng: 54, type: 'country' }
+        ];
+        
+        function init() {
+            const container = document.getElementById('globe-container');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 18);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(5, 3, 5);
+            scene.add(sunLight);
+            
+            // Create Earth group
+            earthGroup = new THREE.Group();
+            scene.add(earthGroup);
+            
+            // Create Earth
+            createDetailedEarth();
+            createHubMarkers();
+            createRouteLines();
+            createGeographicLabels();
+            
+            // Controls
+            setupControls();
+            
+            // UI
+            setupUI();
+            
+            // Start
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-hud').style.display = 'block';
+            }, 2000);
+            
+            animate();
+        }
+        
+        function createDetailedEarth() {
+            const geometry = new THREE.SphereGeometry(6, 128, 64);
+            
+            // Create realistic Earth with clear continents
+            const material = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    
+                    vec3 getEarthColor(vec2 uv) {
+                        // Clear continent definitions
+                        float land = 0.0;
+                        
+                        // North America (clear shape)
+                        if (uv.x > 0.1 && uv.x < 0.45 && uv.y > 0.45 && uv.y < 0.85) {
+                            // USA main body
+                            if (uv.x > 0.15 && uv.x < 0.4 && uv.y > 0.5 && uv.y < 0.75) land = 1.0;
+                            // Canada
+                            if (uv.x > 0.12 && uv.x < 0.42 && uv.y > 0.7 && uv.y < 0.85) land = 1.0;
+                            // Mexico
+                            if (uv.x > 0.18 && uv.x < 0.3 && uv.y > 0.45 && uv.y < 0.55) land = 1.0;
+                        }
+                        
+                        // South America
+                        if (uv.x > 0.25 && uv.x < 0.4 && uv.y > 0.05 && uv.y < 0.5) {
+                            land = 1.0;
+                        }
+                        
+                        // Europe (clear)
+                        if (uv.x > 0.47 && uv.x < 0.65 && uv.y > 0.58 && uv.y < 0.78) {
+                            land = 1.0;
+                        }
+                        
+                        // Africa (clear shape)
+                        if (uv.x > 0.47 && uv.x < 0.68 && uv.y > 0.15 && uv.y < 0.68) {
+                            land = 1.0;
+                        }
+                        
+                        // Asia (large and clear)
+                        if (uv.x > 0.6 && uv.x < 0.95 && uv.y > 0.35 && uv.y < 0.82) {
+                            land = 1.0;
+                        }
+                        
+                        // China (highlighted)
+                        if (uv.x > 0.68 && uv.x < 0.85 && uv.y > 0.5 && uv.y < 0.7) {
+                            land = 1.2; // Brighter for China
+                        }
+                        
+                        // Australia
+                        if (uv.x > 0.78 && uv.x < 0.92 && uv.y > 0.12 && uv.y < 0.35) {
+                            land = 1.0;
+                        }
+                        
+                        // Greenland
+                        if (uv.x > 0.35 && uv.x < 0.45 && uv.y > 0.78 && uv.y < 0.9) {
+                            land = 1.1;
+                        }
+                        
+                        // Color scheme
+                        vec3 ocean = vec3(0.1, 0.2, 0.6);
+                        vec3 landGreen = vec3(0.2, 0.5, 0.1);
+                        vec3 landBrown = vec3(0.4, 0.3, 0.1);
+                        
+                        vec3 finalColor = ocean;
+                        if (land > 0.5) {
+                            // Different land colors for variety
+                            float variation = sin(uv.x * 20.0) * cos(uv.y * 15.0);
+                            finalColor = mix(landGreen, landBrown, (variation + 1.0) * 0.3);
+                            
+                            // China special highlight
+                            if (land > 1.1) {
+                                finalColor = mix(finalColor, vec3(0.6, 0.4, 0.1), 0.3);
+                            }
+                        }
+                        
+                        return finalColor;
+                    }
+                    
+                    void main() {
+                        vec3 color = getEarthColor(vUv);
+                        
+                        // Lighting
+                        float NdotL = max(0.2, dot(vNormal, normalize(vec3(1.0, 0.5, 1.0))));
+                        color *= NdotL;
+                        
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `
+            });
+            
+            earth = new THREE.Mesh(geometry, material);
+            earthGroup.add(earth);
+        }
+        
+        function latLngToVector3(lat, lng, radius = 6.05) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lng + 180) * (Math.PI / 180);
+            
+            return new THREE.Vector3(
+                -(radius * Math.sin(phi) * Math.cos(theta)),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+        
+        function createHubMarkers() {
+            CARGO_HUBS.forEach(hub => {
+                const position = latLngToVector3(hub.lat, hub.lng);
+                
+                // Hub marker
+                let size = 0.08;
+                let color = '#00ff88';
+                
+                if (hub.type === 'superhub') {
+                    size = 0.15;
+                    color = '#ff3366';
+                } else if (hub.type === 'major') {
+                    size = 0.12;
+                    color = '#ffaa00';
+                }
+                
+                const geometry = new THREE.SphereGeometry(size, 16, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color),
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const marker = new THREE.Mesh(geometry, material);
+                marker.position.copy(position);
+                marker.userData = { hub, type: 'hub' };
+                
+                // Glow ring
+                const ringGeometry = new THREE.RingGeometry(size * 1.5, size * 2, 16);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color),
+                    transparent: true,
+                    opacity: 0.4,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.position.copy(position);
+                ring.lookAt(new THREE.Vector3(0, 0, 0));
+                
+                earthGroup.add(marker);
+                earthGroup.add(ring);
+                
+                // Create hub info panel
+                if (showHubs) {
+                    createHubInfoPanel(hub, position);
+                }
+            });
+        }
+        
+        function createHubInfoPanel(hub, position) {
+            const panel = document.createElement('div');
+            panel.className = 'hub-info';
+            panel.innerHTML = `
+                <div class="hub-name">${hub.code} - ${hub.name}</div>
+                <div class="hub-stats">📍 ${hub.city}, ${hub.country}</div>
+                <div class="hub-stats">📦 ${hub.cargo.toLocaleString()}K tons/year</div>
+                <div class="hub-stats">🌍 ${hub.continent}</div>
+                <div style="color: #ffaa00; margin-top: 8px; font-size: 9px;">
+                    ${hub.description}
+                </div>
+                <div style="color: #66ccff; margin-top: 5px; font-size: 8px; line-height: 1.3;">
+                    💡 ${hub.significance}
+                </div>
+            `;
+            
+            // Position calculation (simplified)
+            const screenPos = getScreenPosition(position);
+            panel.style.left = (screenPos.x + 50) + 'px';
+            panel.style.top = (screenPos.y - 50) + 'px';
+            
+            document.getElementById('globe-container').appendChild(panel);
+        }
+        
+        function createRouteLines() {
+            CARGO_ROUTES.forEach(route => {
+                const fromHub = CARGO_HUBS.find(h => h.code === route.from);
+                const toHub = CARGO_HUBS.find(h => h.code === route.to);
+                
+                if (!fromHub || !toHub) return;
+                
+                const fromPos = latLngToVector3(fromHub.lat, fromHub.lng);
+                const toPos = latLngToVector3(toHub.lat, toHub.lng);
+                
+                // Create curved route
+                const midPoint = fromPos.clone().add(toPos).normalize().multiplyScalar(8);
+                const curve = new THREE.QuadraticBezierCurve3(fromPos, midPoint, toPos);
+                
+                const points = curve.getPoints(100);
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({
+                    color: new THREE.Color(route.color),
+                    transparent: true,
+                    opacity: 0.8,
+                    linewidth: 3
+                });
+                
+                const line = new THREE.Line(geometry, material);
+                line.userData = { route, type: 'route' };
+                earthGroup.add(line);
+                
+                if (showRoutes) {
+                    createRouteInfoPanel(route, fromHub, toHub);
+                }
+            });
+        }
+        
+        function createRouteInfoPanel(route, fromHub, toHub) {
+            const panel = document.createElement('div');
+            panel.className = 'route-info';
+            panel.innerHTML = `
+                <div class="route-title">${route.from} → ${route.to}</div>
+                <div style="margin: 5px 0;">📍 ${fromHub.city} → ${toHub.city}</div>
+                <div style="margin: 3px 0;">📦 ${route.volume.toLocaleString()}K tons/year</div>
+                <div style="margin: 3px 0;">✈️ ${route.frequency}</div>
+                <div style="margin: 3px 0;">📏 ${route.distance}</div>
+                <div style="margin: 8px 0 5px 0; color: #ffff00; font-size: 8px;">
+                    🎯 ${route.description}
+                </div>
+                <div style="color: #cccccc; font-size: 8px; line-height: 1.2;">
+                    📋 ${route.cargo_type}
+                </div>
+                <div style="color: #66ccff; font-size: 7px; line-height: 1.3; margin-top: 5px;">
+                    💼 ${route.business_reason}
+                </div>
+            `;
+            
+            // Position in middle of route
+            const midScreenPos = {
+                x: Math.random() * 300 + 100,
+                y: Math.random() * 200 + 200
+            };
+            
+            panel.style.left = midScreenPos.x + 'px';
+            panel.style.top = midScreenPos.y + 'px';
+            
+            document.getElementById('globe-container').appendChild(panel);
+        }
+        
+        function createGeographicLabels() {
+            if (!showLabels) return;
+            
+            GEO_LABELS.forEach(label => {
+                const position = latLngToVector3(label.lat, label.lng, 6.5);
+                const screenPos = getScreenPosition(position);
+                
+                const labelDiv = document.createElement('div');
+                labelDiv.className = `geo-label ${label.type}-label`;
+                labelDiv.textContent = label.text;
+                
+                labelDiv.style.left = screenPos.x + 'px';
+                labelDiv.style.top = screenPos.y + 'px';
+                
+                document.getElementById('globe-container').appendChild(labelDiv);
+            });
+        }
+        
+        function getScreenPosition(position) {
+            const vector = position.clone().project(camera);
+            const container = document.getElementById('globe-container');
+            
+            return {
+                x: Math.round((vector.x + 1) * container.clientWidth / 2),
+                y: Math.round((-vector.y + 1) * container.clientHeight / 2)
+            };
+        }
+        
+        function setupControls() {
+            const container = document.getElementById('globe-container');
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            container.addEventListener('mousedown', (event) => {
+                isDragging = true;
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+            });
+            
+            container.addEventListener('mousemove', (event) => {
+                if (!isDragging || earthRotating) return;
+                
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+                
+                earthGroup.rotation.y += deltaMove.x * 0.005;
+                earthGroup.rotation.x += deltaMove.y * 0.005;
+                earthGroup.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, earthGroup.rotation.x));
+                
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+                
+                updateViewContext();
+            });
+            
+            container.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            container.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                camera.position.z += event.deltaY * 0.01;
+                camera.position.z = Math.max(10, Math.min(30, camera.position.z));
+            });
+            
+            // Button controls
+            document.getElementById('show-labels').addEventListener('click', function() {
+                showLabels = !showLabels;
+                this.classList.toggle('active', showLabels);
+                this.textContent = showLabels ? '🏷️ SHOW LABELS' : '🏷️ HIDE LABELS';
+                refreshLabels();
+            });
+            
+            document.getElementById('show-routes').addEventListener('click', function() {
+                showRoutes = !showRoutes;
+                this.classList.toggle('active', showRoutes);
+                this.textContent = showRoutes ? '✈️ CARGO ROUTES' : '✈️ ROUTES OFF';
+                refreshScene();
+            });
+            
+            document.getElementById('show-hubs').addEventListener('click', function() {
+                showHubs = !showHubs;
+                this.classList.toggle('active', showHubs);
+                this.textContent = showHubs ? '🏢 HUB INFO' : '🏢 HUBS OFF';
+                refreshScene();
+            });
+            
+            document.getElementById('pause-rotation').addEventListener('click', function() {
+                earthRotating = !earthRotating;
+                this.classList.toggle('active', !earthRotating);
+                this.textContent = earthRotating ? '⏸️ PAUSE EARTH' : '▶️ RESUME EARTH';
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                camera.position.set(0, 0, 18);
+                earthGroup.rotation.set(0, 0, 0);
+                updateViewContext();
+            });
+        }
+        
+        function setupUI() {
+            updateViewContext();
+        }
+        
+        function updateViewContext() {
+            // Simple region detection based on rotation
+            const rotY = earthGroup.rotation.y % (Math.PI * 2);
+            let region, continents, focus;
+            
+            if (rotY >= -0.5 && rotY <= 0.5) {
+                region = 'Pacific Ocean';
+                continents = 'Asia, North America, Oceania';
+                focus = 'Trans-Pacific Trade Routes';
+            } else if (rotY >= 0.5 && rotY <= 2) {
+                region = 'Asia';
+                continents = 'Asia, Europe, Middle East';
+                focus = 'Asian Manufacturing Hubs';
+            } else if (rotY >= 2 && rotY <= 3.5) {
+                region = 'Europe & Africa';
+                continents = 'Europe, Africa, Middle East';
+                focus = 'European Trade Network';
+            } else {
+                region = 'Atlantic Ocean';
+                continents = 'Europe, North America, Africa';
+                focus = 'Trans-Atlantic Commerce';
+            }
+            
+            document.getElementById('current-region').textContent = region;
+            document.getElementById('visible-continents').textContent = continents;
+            document.getElementById('current-focus').textContent = focus;
+            document.getElementById('active-hubs').textContent = `${CARGO_HUBS.length} Major Hubs`;
+        }
+        
+        function refreshLabels() {
+            // Remove existing labels
+            const labels = document.querySelectorAll('.geo-label');
+            labels.forEach(label => label.remove());
+            
+            // Recreate if enabled
+            if (showLabels) {
+                createGeographicLabels();
+            }
+        }
+        
+        function refreshScene() {
+            // Remove existing panels
+            const hubPanels = document.querySelectorAll('.hub-info');
+            const routePanels = document.querySelectorAll('.route-info');
+            
+            hubPanels.forEach(panel => panel.remove());
+            routePanels.forEach(panel => panel.remove());
+            
+            // Recreate scene elements
+            if (showHubs || showRoutes) {
+                // Clear and recreate
+                earthGroup.clear();
+                createDetailedEarth();
+                createHubMarkers();
+                createRouteLines();
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Earth rotation
+            if (earthRotating) {
+                earthGroup.rotation.y += 0.002;
+                updateViewContext();
+            }
+            
+            // Update shaders
+            if (earth && earth.material.uniforms) {
+                earth.material.uniforms.time.value += 0.01;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('globe-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        // Initialize
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

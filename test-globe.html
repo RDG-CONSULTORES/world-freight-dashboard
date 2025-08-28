@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Freight Globe - Test</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #0a0f1c;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #06b6d4;
+            color: white;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .globe-container {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 30px; color: #06b6d4;">
+            🌍 World Freight Dashboard - Globe Test
+        </h1>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="filterHubs('all')">All Hubs</button>
+            <button class="btn btn-secondary" onclick="filterHubs('major')">Major Hubs</button>
+            <button class="btn btn-secondary" onclick="filterHubs('regional')">Regional Hubs</button>
+            <button class="btn btn-secondary" onclick="toggleAircraft()">Toggle Aircraft</button>
+            <button class="btn btn-secondary" onclick="resetView()">Reset View</button>
+        </div>
+        
+        <div class="globe-container">
+            <div id="globe" style="width: 100%; height: 600px;"></div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: #666;">
+            🖱️ Mouse Controls: Drag to rotate • Scroll to zoom • Double-click to reset
+        </div>
+    </div>
+
+    <script>
+        // World Freight Data
+        const WORLD_FREIGHT_HUBS = [
+            // Major Hubs
+            { name: "Memphis", code: "MEM", lat: 35.0424, lng: -89.9767, cargo: 4613000, type: "major", country: "USA", company: "FedEx" },
+            { name: "Hong Kong", code: "HKG", lat: 22.3080, lng: 113.9185, cargo: 4520000, type: "major", country: "Hong Kong", company: "Cathay Pacific" },
+            { name: "Shanghai", code: "PVG", lat: 31.1443, lng: 121.8083, cargo: 3630000, type: "major", country: "China", company: "China Cargo" },
+            { name: "Anchorage", code: "ANC", lat: 61.1744, lng: -149.9961, cargo: 3162000, type: "major", country: "USA", company: "UPS/FedEx" },
+            { name: "Seoul", code: "ICN", lat: 37.4602, lng: 126.4407, cargo: 2840000, type: "major", country: "South Korea", company: "Korean Air" },
+            { name: "Dubai", code: "DXB", lat: 25.2532, lng: 55.3657, cargo: 2650000, type: "major", country: "UAE", company: "Emirates" },
+            { name: "Los Angeles", code: "LAX", lat: 34.0522, lng: -118.2437, cargo: 2268000, type: "major", country: "USA", company: "Multiple" },
+            { name: "Frankfurt", code: "FRA", lat: 50.0379, lng: 8.5622, cargo: 2280000, type: "major", country: "Germany", company: "Lufthansa Cargo" },
+            
+            // Regional Hubs
+            { name: "Paris", code: "CDG", lat: 49.0097, lng: 2.5479, cargo: 2180000, type: "regional", country: "France", company: "Air France" },
+            { name: "London", code: "LHR", lat: 51.4700, lng: -0.4543, cargo: 1770000, type: "regional", country: "UK", company: "British Airways" },
+            { name: "Amsterdam", code: "AMS", lat: 52.3105, lng: 4.7683, cargo: 1740000, type: "regional", country: "Netherlands", company: "KLM Cargo" },
+            { name: "Miami", code: "MIA", lat: 25.7959, lng: -80.2870, cargo: 2340000, type: "regional", country: "USA", company: "American" },
+            { name: "Tokyo", code: "NRT", lat: 35.7720, lng: 140.3929, cargo: 2180000, type: "regional", country: "Japan", company: "JAL/ANA" }
+        ];
+
+        const WORLD_FREIGHT_ROUTES = [
+            { from: "HKG", to: "MEM", volume: 285000, color: '#06b6d4', id: "HKG-MEM" },
+            { from: "PVG", to: "LAX", volume: 240000, color: '#10b981', id: "PVG-LAX" },
+            { from: "FRA", to: "ORD", volume: 180000, color: '#8b5cf6', id: "FRA-ORD" },
+            { from: "LHR", to: "MEM", volume: 165000, color: '#ef4444', id: "LHR-MEM" },
+            { from: "DXB", to: "FRA", volume: 125000, color: '#f97316', id: "DXB-FRA" },
+            { from: "AMS", to: "HKG", volume: 145000, color: '#3b82f6', id: "AMS-HKG" }
+        ];
+
+        let currentFilter = 'all';
+        let aircraftActive = false;
+        let aircraftInterval = null;
+
+        const getHub = (code) => WORLD_FREIGHT_HUBS.find(h => h.code === code);
+
+        function updateGlobe() {
+            let hubs = WORLD_FREIGHT_HUBS.slice();
+            
+            if (currentFilter !== 'all') {
+                hubs = hubs.filter(h => h.type === currentFilter);
+            }
+
+            const traces = [];
+
+            // Add hubs
+            hubs.forEach(hub => {
+                const size = hub.type === 'major' ? 
+                    Math.max(30, Math.min(hub.cargo / 50000, 60)) : 
+                    Math.max(20, Math.min(hub.cargo / 70000, 40));
+                
+                const color = hub.type === 'major' ? '#ef4444' : '#06b6d4';
+
+                traces.push({
+                    type: 'scattergeo',
+                    lat: [hub.lat],
+                    lon: [hub.lng],
+                    text: [hub.name],
+                    mode: 'markers+text',
+                    marker: {
+                        size: size,
+                        color: color,
+                        line: { width: 2, color: '#ffffff' },
+                        symbol: 'circle',
+                        opacity: 0.9
+                    },
+                    textposition: 'bottom center',
+                    textfont: { size: 11, color: '#ffffff', family: 'Inter' },
+                    showlegend: false,
+                    hovertemplate: `<b>${hub.name} (${hub.code})</b><br>` +
+                                 `Type: ${hub.type}<br>` +
+                                 `Cargo: ${(hub.cargo/1000000).toFixed(1)}M tons/year<br>` +
+                                 `Company: ${hub.company}<br>` +
+                                 `Country: ${hub.country}<extra></extra>`
+                });
+
+                // Glow effect for major hubs
+                if (hub.type === 'major') {
+                    traces.push({
+                        type: 'scattergeo',
+                        lat: [hub.lat],
+                        lon: [hub.lng],
+                        mode: 'markers',
+                        marker: {
+                            size: size + 15,
+                            color: color,
+                            line: { width: 0 },
+                            symbol: 'circle',
+                            opacity: 0.2
+                        },
+                        showlegend: false,
+                        hoverinfo: 'skip'
+                    });
+                }
+            });
+
+            // Add routes
+            WORLD_FREIGHT_ROUTES.forEach(route => {
+                const fromHub = getHub(route.from);
+                const toHub = getHub(route.to);
+                
+                if (!fromHub || !toHub) return;
+
+                const lineWidth = Math.max(2, Math.min(route.volume / 50000, 4));
+
+                traces.push({
+                    type: 'scattergeo',
+                    lat: [fromHub.lat, toHub.lat],
+                    lon: [fromHub.lng, toHub.lng],
+                    mode: 'lines',
+                    line: {
+                        width: lineWidth,
+                        color: route.color,
+                        opacity: 0.7
+                    },
+                    showlegend: false,
+                    hovertemplate: `${route.from} → ${route.to}<br>` +
+                                 `Volume: ${(route.volume/1000).toFixed(0)}K tons/year<extra></extra>`
+                });
+            });
+
+            const layout = {
+                geo: {
+                    scope: 'world',
+                    projection: {
+                        type: 'orthographic',
+                        rotation: { lat: 20, lon: -30, roll: 0 }
+                    },
+                    showland: true,
+                    landcolor: 'rgba(50, 60, 80, 0.9)',
+                    showocean: true,
+                    oceancolor: 'rgba(20, 30, 50, 0.95)',
+                    showcountries: true,
+                    countrycolor: 'rgba(6, 182, 212, 0.4)',
+                    countrywidth: 0.8,
+                    coastlinecolor: 'rgba(6, 182, 212, 0.6)',
+                    coastlinewidth: 1,
+                    showlakes: true,
+                    lakecolor: 'rgba(20, 30, 50, 0.9)',
+                    bgcolor: 'rgba(0,0,0,0)',
+                    showframe: false
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#ffffff', family: 'Inter' },
+                margin: { l: 0, r: 0, t: 0, b: 0 },
+                showlegend: false,
+                height: 600
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d'],
+                displaylogo: false,
+                scrollZoom: true,
+                doubleClick: 'reset'
+            };
+
+            Plotly.newPlot('globe', traces, layout, config).then(() => {
+                console.log('🌍 Globe rendered successfully with mouse controls');
+            });
+        }
+
+        function filterHubs(filter) {
+            currentFilter = filter;
+            updateGlobe();
+            
+            // Update button styles
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.className = btn.className.replace('btn-primary', 'btn-secondary');
+            });
+            event.target.className = event.target.className.replace('btn-secondary', 'btn-primary');
+        }
+
+        function toggleAircraft() {
+            aircraftActive = !aircraftActive;
+            console.log('Aircraft toggle:', aircraftActive ? 'ON' : 'OFF');
+            event.target.textContent = aircraftActive ? 'Stop Aircraft' : 'Start Aircraft';
+            
+            if (!aircraftActive && aircraftInterval) {
+                clearInterval(aircraftInterval);
+                aircraftInterval = null;
+                updateGlobe();
+            }
+        }
+
+        function resetView() {
+            Plotly.relayout('globe', {
+                'geo.projection.rotation': { lat: 20, lon: -30, roll: 0 },
+                'geo.projection.scale': 1
+            });
+        }
+
+        // Initialize globe on load
+        window.addEventListener('load', () => {
+            updateGlobe();
+        });
+    </script>
+</body>
+</html>
