@@ -211,7 +211,7 @@ export default function WorldFreightGlobe() {
       {/* Success indicator */}
       <div className="p-3 bg-green-500/20 border border-green-500/40 rounded-lg">
         <p className="text-sm text-green-400 font-medium text-center">
-          ✅ AIFA Globe Technology - FUNCIONANDO CORRECTAMENTE
+          ✅ NUEVA VERSION DESPLEGADA - AIFA Globe Technology
         </p>
       </div>
 
