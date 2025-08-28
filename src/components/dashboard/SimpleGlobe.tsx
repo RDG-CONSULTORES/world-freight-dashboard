@@ -44,7 +44,7 @@ export default function SimpleGlobe() {
         ]
 
         // Create traces
-        const data = []
+        const data: any[] = []
 
         // Add hub markers
         hubs.forEach(hub => {
